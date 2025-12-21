@@ -891,7 +891,7 @@ if __name__ == "__main__":
         # 5. Wordcloud del giorno (file con data nel nome)
         wc_path_today = get_wordcloud_filename_for_day(today, country)
         make_wordcloud_from_tokens(tokens, stopwords_set, save_path=str(wc_path_today))
-        wc_rel_path_today = os.path.join("..", "data", wc_path_today.name)
+        wc_rel_path_today = os.path.join("data", wc_path_today.name)
 
         per_country_results[country] = {
             "new_df": new_df,
