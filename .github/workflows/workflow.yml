@@ -31,7 +31,7 @@ jobs:
         run: python Newsmonitoring.py
 
       - name: Copy dashboard to root for GitHub Pages
-        run: cp dashboard/index.html index.html
+        run: cp index.html index.html
 
       - name: Commit and push results
         uses: stefanzweifel/git-auto-commit-action@v4
