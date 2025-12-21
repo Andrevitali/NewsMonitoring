@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>European News Dashboard - 21 Dec 2025, 23:29</title>
+    <style>
+        :root {
+            --bg-main: #05070a;
+            --bg-panel: #11141a;
+            --bg-card: #151924;
+            --accent: #4fd1c5;
+            --accent-soft: rgba(79, 209, 197, 0.12);
+            --text-main: #f5f5f5;
+            --text-muted: #a0aec0;
+            --border-subtle: #2d3748;
+            --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.6);
+            --font-mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 32px;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            gap: 24px;
+        }
+
+        .sidebar {
+            width: 240px;
+            padding: 20px 18px;
+            background: radial-gradient(circle at top, #1a202c 0, #05070a 55%);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-soft);
+            position: sticky;
+            top: 24px;
+            height: fit-content;
+        }
+
+        .sidebar h2 {
+            color: #edf2f7;
+            margin: 0 0 12px;
+            font-size: 1.1rem;
+        }
+
+        .sidebar p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+
+        .country-btn {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 8px 10px;
+            background: transparent;
+            color: var(--text-main);
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.95rem;
+            transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+        }
+
+        .country-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-1px);
+        }
+
+        .country-btn.active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+        }
+
+        .container {
+            flex: 1;
+            max-width: 1100px;
+            background: radial-gradient(circle at top left, #1a202c 0, #05070a 55%);
+            padding: 24px 28px;
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-soft);
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 1.4rem;
+        }
+
+        .subtitle {
+            margin: 0 0 4px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .updated-info {
+            margin: 0 0 18px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .country-dashboard {
+            margin-top: 8px;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .header-row h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .date-pill {
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .content-grid {
+            display: block;
+        }
+
+        @media (max-width: 960px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                position: static;
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px;
+            }
+            .sidebar h2 {
+                flex: 1 0 100%;
+            }
+            .container {
+                width: 100%;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            border: 1px solid #202637;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .wordcloud {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            border: 1px solid #2d3748;
+            display: block;
+        }
+
+        .tables-card h3 {
+            margin-top: 12px;
+            font-size: 0.98rem;
+        }
+
+        .tables-card h3:first-of-type {
+            margin-top: 0;
+        }
+
+        .empty-msg {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 4px 0 12px;
+        }
+
+        table.data-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 6px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+        }
+
+        table.data-table th,
+        table.data-table td {
+            border: 1px solid #2d3748;
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        table.data-table th {
+            background-color: #111827;
+            color: #e2e8f0;
+            font-weight: 500;
+            font-size: 0.82rem;
+        }
+
+        table.data-table tr:nth-child(even) {
+            background-color: #0b1220;
+        }
+
+        table.data-table tr:nth-child(odd) {
+            background-color: #050b18;
+        }
+
+        table.data-table td:nth-child(2),
+        table.data-table td:nth-child(3),
+        table.data-table td:nth-child(4) {
+            font-family: var(--font-mono);
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Select a Country</h2>
+        <p>Click a country to explore its top topics, emerging words, and fading stories.</p>
+        <button class="country-btn" data-country="italy">🇮🇹 Italy</button><button class="country-btn" data-country="uk">🇬🇧 UK</button>
+    </div>
+    <div class="container">
+        <h1>European News Dashboard</h1>
+        <p class="subtitle">Daily RSS headlines analysis – key words and trends compared to yesterday.</p>
+        <p class="updated-info">Last update: 21 Dec 2025, 23:29</p>
+        
+        <div class="country-dashboard" id="country-italy" style="display:none;">
+            <div class="header-row">
+                <h2>🇮🇹 Italy</h2>
+                <span class="date-pill">Updated: 21 Dec 2025, 23:29</span>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <h3>Today's wordcloud</h3>
+                    <img src="../data/2025-12-21_italy_wordcloud.png" alt="Wordcloud italy" class="wordcloud">
+                </div>
+
+                <div class="card tables-card">
+                    <h3>Top 10 new words (today vs yesterday)</h3>
+                    <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Word</th>
+      <th>Today frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>nilo</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>italiana</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>collisione</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>macron</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>censure</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>san</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>crociera</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>pagine</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>superg</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>francisco</td>
+      <td>4</td>
+    </tr>
+  </tbody>
+</table>
+                    <h3>Top 10 increasing words (today ≫ yesterday)</h3>
+                    <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Word</th>
+      <th>Difference</th>
+      <th>Today frequency</th>
+      <th>Yesterday frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>morta</td>
+      <td>4</td>
+      <td>5</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>serie</td>
+      <td>4</td>
+      <td>8</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>mosca</td>
+      <td>4</td>
+      <td>5</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>cremlino</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>caso</td>
+      <td>3</td>
+      <td>6</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>val</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>suicida</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>colloqui</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>enne</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>uccide</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+                    <h3>Top 10 decreasing words (today ≪ yesterday)</h3>
+                    <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Word</th>
+      <th>Difference</th>
+      <th>Today frequency</th>
+      <th>Yesterday frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>manovra</td>
+      <td>-21</td>
+      <td>5</td>
+      <td>26</td>
+    </tr>
+    <tr>
+      <td>meloni</td>
+      <td>-13</td>
+      <td>1</td>
+      <td>14</td>
+    </tr>
+    <tr>
+      <td>usa</td>
+      <td>-10</td>
+      <td>8</td>
+      <td>18</td>
+    </tr>
+    <tr>
+      <td>commissione</td>
+      <td>-7</td>
+      <td>1</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>zelensky</td>
+      <td>-7</td>
+      <td>1</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>mattarella</td>
+      <td>-7</td>
+      <td>1</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>epstein</td>
+      <td>-6</td>
+      <td>7</td>
+      <td>13</td>
+    </tr>
+    <tr>
+      <td>trump</td>
+      <td>-6</td>
+      <td>2</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>ucraina</td>
+      <td>-5</td>
+      <td>11</td>
+      <td>16</td>
+    </tr>
+    <tr>
+      <td>gaza</td>
+      <td>-5</td>
+      <td>1</td>
+      <td>6</td>
+    </tr>
+  </tbody>
+</table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="country-dashboard" id="country-uk" style="display:none;">
+            <div class="header-row">
+                <h2>🇬🇧 Uk</h2>
+                <span class="date-pill">Updated: 21 Dec 2025, 23:29</span>
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <h3>Today's wordcloud</h3>
+                    <img src="../data/2025-12-21_uk_wordcloud.png" alt="Wordcloud uk" class="wordcloud">
+                </div>
+
+                <div class="card tables-card">
+                    <h3>Top 10 new words (today vs yesterday)</h3>
+                    <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Word</th>
+      <th>Today frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>villa</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>record</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <td>israel</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>rogers</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>utd</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>settlements</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>channel</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>title</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>aston</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>price</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+                    <h3>Top 10 increasing words (today ≫ yesterday)</h3>
+                    <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Word</th>
+      <th>Difference</th>
+      <th>Today frequency</th>
+      <th>Yesterday frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>trump</td>
+      <td>12</td>
+      <td>18</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>west</td>
+      <td>8</td>
+      <td>10</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>epstein</td>
+      <td>8</td>
+      <td>18</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <td>bank</td>
+      <td>7</td>
+      <td>8</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>christmas</td>
+      <td>5</td>
+      <td>20</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <td>europe</td>
+      <td>4</td>
+      <td>5</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>action</td>
+      <td>4</td>
+      <td>5</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>labour</td>
+      <td>3</td>
+      <td>8</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>injury</td>
+      <td>3</td>
+      <td>4</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>winter</td>
+      <td>3</td>
+      <td>5</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+                    <h3>Top 10 decreasing words (today ≪ yesterday)</h3>
+                    <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Word</th>
+      <th>Difference</th>
+      <th>Today frequency</th>
+      <th>Yesterday frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>dancing</td>
+      <td>-4</td>
+      <td>1</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>claudia</td>
+      <td>-4</td>
+      <td>1</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>state</td>
+      <td>-4</td>
+      <td>2</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>threat</td>
+      <td>-4</td>
+      <td>1</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>winkleman</td>
+      <td>-4</td>
+      <td>1</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>bbc</td>
+      <td>-3</td>
+      <td>2</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>liverpool</td>
+      <td>-3</td>
+      <td>2</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>podcast</td>
+      <td>-3</td>
+      <td>1</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>venezuela</td>
+      <td>-3</td>
+      <td>4</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>gift</td>
+      <td>-3</td>
+      <td>1</td>
+      <td>4</td>
+    </tr>
+  </tbody>
+</table>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        const dashboards = document.querySelectorAll('.country-dashboard');
+        const buttons = document.querySelectorAll('.country-btn');
+
+        function showCountry(country) {
+            dashboards.forEach(d => {
+                if (d.id === 'country-' + country) {
+                    d.style.display = 'block';
+                } else {
+                    d.style.display = 'none';
+                }
+            });
+            buttons.forEach(b => {
+                if (b.getAttribute('data-country') === country) {
+                    b.classList.add('active');
+                } else {
+                    b.classList.remove('active');
+                }
+            });
+        }
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const country = btn.getAttribute('data-country');
+                showCountry(country);
+            });
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (buttons.length > 0) {
+                const firstCountry = buttons[0].getAttribute('data-country');
+                showCountry(firstCountry);
+            }
+        });
+    </script>
+</body>
+</html>

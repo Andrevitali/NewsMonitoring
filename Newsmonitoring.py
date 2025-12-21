@@ -834,7 +834,7 @@ def save_dashboard_html_multi(today: date, per_country_results: dict):
 </body>
 </html>
 """
-    out_path = BASE_DIR / "dashboard" / "index.html"
+    out_path = BASE_DIR / "index.html"
     out_path.parent.mkdir(exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(full_html)
