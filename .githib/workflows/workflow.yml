@@ -1,0 +1,40 @@
+name: Update News Polls Dashboard
+permissions:
+  contents: write
+on:
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Download NLTK data
+        run: |
+          python -m nltk.downloader stopwords
+
+      - name: Run NewsMonitor
+        run: python Newsmonitoring.py
+
+      - name: Copy dashboard to root for GitHub Pages
+        run: cp dashboard/index.html index.html
+
+      - name: Commit and push results
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Auto-update dashboard"
+          branch: main

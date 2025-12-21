@@ -1,0 +1,10 @@
+
+re
+os
+json
+feedparser
+nltk
+wordcloud
+matplotlib
+pandas
+Pillow
