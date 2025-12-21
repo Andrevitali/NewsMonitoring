@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Download NLTK data
-        run: |
+        run: | 
           python -m nltk.downloader stopwords
 
       - name: Run NewsMonitor
