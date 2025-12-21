@@ -1,7 +1,4 @@
 
-re
-os
-json
 feedparser
 nltk
 wordcloud
