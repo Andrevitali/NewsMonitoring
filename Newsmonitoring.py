@@ -3,7 +3,7 @@ import os
 import json
 import time
 from datetime import date, timedelta, datetime, timezone
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 import feedparser
@@ -12,10 +12,12 @@ from nltk.corpus import stopwords
 from wordcloud import WordCloud
 
 import matplotlib
-matplotlib.use("Agg")  # safe non-GUI backend for CI / servers
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import pandas as pd
+import calendar
+
 
 # ------------------------
 # 0. STOPWORDS NLTK
@@ -30,16 +32,35 @@ try:
 except LookupError:
     nltk.download("stopwords")
 
+STOP_IT = set(stopwords.words("italian"))
+STOP_EN = set(stopwords.words("english"))
+
 # ------------------------
-# 0-bis. SPACY (per l'inglese)
+# 0-bis. SPACY (EN + IT)
 # ------------------------
 try:
     import spacy
-    nlp_en = spacy.load("en_core_web_sm")
-    print("[INFO] spaCy English model loaded.")
 except Exception as e:
-    nlp_en = None
-    print("[WARN] spaCy English model NOT loaded, fallback to regex tokenization for UK.", e)
+    spacy = None
+    print("[WARN] spaCy not installed/available:", e)
+
+nlp_en = None
+nlp_it = None
+
+if spacy is not None:
+    try:
+        nlp_en = spacy.load("en_core_web_sm")
+        print("[INFO] spaCy English model loaded.")
+    except Exception as e:
+        nlp_en = None
+        print("[WARN] spaCy English model NOT loaded. Install with: python -m spacy download en_core_web_sm", e)
+
+    try:
+        nlp_it = spacy.load("it_core_news_sm")
+        print("[INFO] spaCy Italian model loaded.")
+    except Exception as e:
+        nlp_it = None
+        print("[WARN] spaCy Italian model NOT loaded. Install with: python -m spacy download it_core_news_sm", e)
 
 # ------------------------
 # 1. RSS FEEDS PER NAZIONE
@@ -74,9 +95,8 @@ COUNTRY_FEEDS = {
     ],
 }
 
-
 # ------------------------
-# 1-bis. FETCH ARTICLES ONLY FROM TODAY
+# 1-bis. FETCH ARTICLES ONLY FROM TODAY (UTC)
 # ------------------------
 def fetch_articles(feeds):
     """
@@ -90,33 +110,23 @@ def fetch_articles(feeds):
         print("[RSS]", url)
         feed = feedparser.parse(url)
 
-        for entry in feed.entries:  # puoi usare [:20] se vuoi limitare
+        for entry in feed.entries:
             title = entry.get("title", "")
 
-            # usa solo i campi parsed (struct_time)
             dt_struct = entry.get("published_parsed") or entry.get("updated_parsed")
             if not dt_struct:
-                # nessuna data parsabile -> salta
                 continue
 
-            dt = datetime.fromtimestamp(time.mktime(dt_struct), tz=timezone.utc)
-            pub_date = dt.date()
-
-            if pub_date == today_date:
-                #print(pub_date, " ", title)
+            dt = datetime.fromtimestamp(calendar.timegm(dt_struct), tz=timezone.utc)
+            if dt.date() == today_date:
                 texts.append(title)
 
     print("______________________________")
     return " ".join(texts)
 
-
 # ------------------------
-# 2. STOPWORDS CUSTOM (IT + EN, per paese)
+# 2. STOPWORDS CUSTOM
 # ------------------------
-STOP_IT = set(stopwords.words("italian"))
-STOP_EN = set(stopwords.words("english"))
-
-# Stopwords comuni (rumore, nomi giornali, ecc.)
 COMMON_STOPWORDS = {
     # Italiani generici
     "oggi", "ieri", "due", "tre", "solo", "ancora",
@@ -126,7 +136,7 @@ COMMON_STOPWORDS = {
     "un", "una", "uno", "nel", "nella", "nelle", "negli",
     "e", "ed", "le", "è", "ecco",
     "poi", "senza", "mai", "anni",
-    "nuova", "tutto", "cosa", "casa",
+    "nuova", "tutto", "cosa", "casa","nuovo","nuova","nuove","nuovi","ora",
     "repubblica", "ansa", "rai", "rainews", "notizie", "italia",
     # Inglesi generici
     "today", "yesterday", "two", "three", "only", "again",
@@ -136,7 +146,6 @@ COMMON_STOPWORDS = {
     "img", "https", "con", "alt", "video", "foto", "corriere", "images2",
 }
 
-# Extra-stopwords manuali per l’inglese / UK (politica + news)
 EXTRA_STOPWORDS_UK = {
     "uk", "britain", "english", "england",
     "say", "says", "said",
@@ -145,7 +154,6 @@ EXTRA_STOPWORDS_UK = {
     "newest", "latest", "live", "update", "updates", "breaking",
 }
 
-# Lista più corposa pensata per news / tabloid
 EXTRA_STOPWORDS_NEWS_UK = {
     "exclusive", "coverage", "report", "reports",
     "story", "storys", "analysis", "review", "reviews", "recap",
@@ -205,78 +213,104 @@ STOPWORDS_BY_COUNTRY = {
 }
 
 # ------------------------
-# 3. TOKENIZZAZIONE E FILTRO
+# 3. TOKEN PAIRS (key lower, display casing preserved)
 # ------------------------
-def tokenize_and_filter(text, stopwords_set, use_spacy_nouns=False, nlp=None):
+def tokenize_term_pairs(text, stopwords_set, nlp=None, only_nouns_propn=True):
     """
-    Se use_spacy_nouns=True e nlp non è None:
-        - usa spaCy
-        - tiene solo NOUN e PROPN
-    Altrimenti:
-        - tokenizzazione regex standard
-    In entrambi i casi applica stopwords_set e lunghezza >= 3.
+    Returns list of pairs: (key, display)
+      - key: normalized for counting (lowercase lemma/token)
+      - display: surface form (preserves capitalization)
     """
-    tokens_raw = []
+    out = []
 
-    if use_spacy_nouns and nlp is not None:
+    if nlp is not None:
         doc = nlp(text)
-        for token in doc:
-            if token.is_space or token.is_punct:
+        for t in doc:
+            if t.is_space or t.is_punct:
                 continue
-            if token.pos_ not in {"NOUN", "PROPN"}:
+            allowed_pos = {"NOUN", "PROPN"} if only_nouns_propn else {"NOUN", "PROPN", "ADJ"}
+            if t.pos_ not in allowed_pos:
                 continue
-            tokens_raw.append(token.text)
-    else:
-        # fallback semplice con regex
-        tokens_raw = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", text)
 
-    filtered = []
+            lemma = (t.lemma_ or t.text).strip()
+            surface = (t.text or "").strip()
+
+            if not lemma:
+                continue
+
+            key = lemma.lower()
+            if len(key) < 3:
+                continue
+            if not re.search(r"[a-zà-öø-ÿ]", key, flags=re.IGNORECASE):
+                continue
+            if key in stopwords_set:
+                continue
+
+            display = surface if surface else lemma
+            out.append((key, display))
+        return out
+
+    # fallback regex: keep original casing as display
+    tokens_raw = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", text)
     for w in tokens_raw:
-        wl = w.lower()
-        if len(wl) < 3:
+        key = w.lower()
+        if len(key) < 3:
             continue
-        if wl in stopwords_set:
+        if key in stopwords_set:
             continue
-        filtered.append(w)
-    return filtered
-
+        out.append((key, w))
+    return out
 
 # ------------------------
-# 4. WORDCLOUD (UNIGRAMS + BIGRAMS)
+# 4. TERM COUNTS (UNIGRAMS + BIGRAMS) with display casing
 # ------------------------
-def make_wordcloud_from_tokens(tokens, stopwords_set, min_bigram_freq=2, save_path=None):
-    # 1) unigrams: conteggio case-insensitive
-    counts_lower = Counter()
-    forms_by_lower = defaultdict(Counter)
-
-    for w in tokens:
-        wl = w.lower()
-        counts_lower[wl] += 1
-        forms_by_lower[wl][w] += 1
-
-    # 2) bigrams espliciti (usiamo le forme originali)
-    bigram_counts = Counter()
-    for w1, w2 in zip(tokens, tokens[1:]):
-        wl1, wl2 = w1.lower(), w2.lower()
-        if wl1 in stopwords_set or wl2 in stopwords_set:
-            continue
-        bigram = f"{w1} {w2}"
-        bigram_counts[bigram] += 1
-
-    # 3) dizionario per la wordcloud
-    freq_for_wc = {}
+def get_term_counts_from_pairs(pairs, stopwords_set=None, min_bigram_freq=2, include_bigrams=True):
+    """
+    pairs: list[(key_lower, display_form)]
+    Returns:
+      counts: dict[term_display -> freq]
+    """
+    key_counts = Counter()
+    display_counter_by_key = {}
 
     # unigrams
-    for wl, count in counts_lower.items():
-        best_form, _ = forms_by_lower[wl].most_common(1)[0]
-        freq_for_wc[best_form] = count
+    for key, disp in pairs:
+        key_counts[key] += 1
+        if key not in display_counter_by_key:
+            display_counter_by_key[key] = Counter()
+        display_counter_by_key[key][disp] += 1
+
+    # best display per key
+    best_display = {k: c.most_common(1)[0][0] for k, c in display_counter_by_key.items()}
 
     # bigrams
-    for bigram, count in bigram_counts.items():
-        if count >= min_bigram_freq:
-            freq_for_wc[bigram] = count
+    bigram_key_counts = Counter()
+    if include_bigrams:
+        for (k1, _), (k2, _) in zip(pairs, pairs[1:]):
+            if stopwords_set is not None and (k1 in stopwords_set or k2 in stopwords_set):
+                continue
+            bigram_key_counts[f"{k1} {k2}"] += 1
 
-    # 4) WordCloud
+        if min_bigram_freq and min_bigram_freq > 1:
+            bigram_key_counts = Counter({k: v for k, v in bigram_key_counts.items() if v >= min_bigram_freq})
+
+    # final dict using display forms
+    final_counts = {}
+    for k, v in key_counts.items():
+        final_counts[best_display.get(k, k)] = v
+
+    for bigram_key, v in bigram_key_counts.items():
+        k1, k2 = bigram_key.split(" ", 1)
+        d1 = best_display.get(k1, k1)
+        d2 = best_display.get(k2, k2)
+        final_counts[f"{d1} {d2}"] = v
+
+    return final_counts
+
+# ------------------------
+# 5. WORDCLOUD (from term counts)
+# ------------------------
+def make_wordcloud_from_term_counts(term_counts, save_path=None):
     wc = WordCloud(
         width=1600,
         height=800,
@@ -289,40 +323,18 @@ def make_wordcloud_from_tokens(tokens, stopwords_set, min_bigram_freq=2, save_pa
         prefer_horizontal=0.5,
         relative_scaling=1.0,
         random_state=42,
-    ).generate_from_frequencies(freq_for_wc)
+    ).generate_from_frequencies(term_counts)
 
     plt.figure(figsize=(14, 7))
     plt.imshow(wc, interpolation="bilinear")
     plt.axis("off")
     plt.tight_layout()
-
     if save_path is not None:
         plt.savefig(save_path, dpi=200)
-
-    plt.close()  # importante in CI per non accumulare figure
-
+    plt.close()
 
 # ------------------------
-# 5. ANALISI TOP PAROLE
-# ------------------------
-def show_top_words(tokens, x=10):
-    counts = Counter(w.lower() for w in tokens)
-    print(f"\nTop {x} parole (senza collocations):\n" + "-" * 30)
-    for parola, freq in counts.most_common(x):
-        print(f"{parola:25s} {freq}")
-
-
-def get_word_counts(tokens):
-    """
-    Ritorna un dict: parola (lowercase) -> frequenza
-    da usare per il salvataggio giornaliero.
-    """
-    counts = Counter(w.lower() for w in tokens)
-    return dict(counts)
-
-
-# ------------------------
-# 6. GESTIONE FILE GIORNALIERI
+# 6. FILE SYSTEM
 # ------------------------
 try:
     BASE_DIR = Path(__file__).resolve().parent
@@ -332,18 +344,15 @@ except NameError:
 DATA_DIR = BASE_DIR / "data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-
 def get_counts_filename(day: date, country: str) -> str:
-    return str(DATA_DIR / f"{day.isoformat()}_{country}_words.json")
-
+    return str(DATA_DIR / f"{day.isoformat()}_{country}_terms.json")
 
 def save_counts_for_day(day: date, country: str, counts: dict):
     filename = get_counts_filename(day, country)
     fullpath = os.path.abspath(filename)
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(counts, f, ensure_ascii=False, indent=2)
-    print(f"\n[INFO] Saved counts for {country} to {fullpath}")
-
+    print(f"\n[INFO] Saved term counts for {country} to {fullpath}")
 
 def load_counts_for_day(day: date, country: str):
     filename = get_counts_filename(day, country)
@@ -353,190 +362,123 @@ def load_counts_for_day(day: date, country: str):
     with open(filename, "r", encoding="utf-8") as f:
         return json.load(f)
 
-
-# ------------------------
-# 6-bis. WORDCLOUD FILENAME (per giorno)
-# ------------------------
 def get_wordcloud_filename_for_day(day: date, country: str) -> Path:
-    """
-    Path per il wordcloud di uno specifico giorno e paese.
-    Esempio: data/2025-12-21_italy_wordcloud.png
-    """
     return DATA_DIR / f"{day.isoformat()}_{country}_wordcloud.png"
 
-
 # ------------------------
-# 7. TABELLE: NUOVE PAROLE / UP / DOWN
+# 7. TABLES: NEW / RISING / FALLING (renamed columns)
 # ------------------------
 def get_new_words_table(today_counts: dict, yesterday_counts: dict, top_n=10):
-    today_words = set(today_counts.keys())
-    yest_words = set(yesterday_counts.keys())
-
-    new_words = today_words - yest_words
-
-    rows = []
-    for w in new_words:
-        rows.append({"Word": w, "Today frequency": today_counts[w]})
-
+    new_terms = set(today_counts.keys()) - set(yesterday_counts.keys())
+    rows = [{"Term": t, "Current day frequency": today_counts[t]} for t in new_terms]
     if not rows:
-        return pd.DataFrame(columns=["Word", "Today frequency"])
-
-    df = pd.DataFrame(rows)
-    df = df.sort_values("Today frequency", ascending=False).head(top_n)
-    return df
-
+        return pd.DataFrame(columns=["Term", "Current day frequency"])
+    return pd.DataFrame(rows).sort_values("Current day frequency", ascending=False).head(top_n)
 
 def get_rising_words_table(today_counts: dict, yesterday_counts: dict, top_n=10):
-    today_words = set(today_counts.keys())
-    yest_words = set(yesterday_counts.keys())
-
     rows = []
-    for w in today_words & yest_words:
-        today_f = today_counts[w]
-        yest_f = yesterday_counts.get(w, 0)
-        delta = today_f - yest_f
-        if delta > 0:
+    for t in set(today_counts.keys()) & set(yesterday_counts.keys()):
+        d = today_counts[t] - yesterday_counts.get(t, 0)
+        if d > 0:
             rows.append({
-                "Word": w,
-                "Difference": delta,
-                "Today frequency": today_f,
-                "Yesterday frequency": yest_f,
+                "Term": t,
+                "Difference": d,
+                "Current day frequency": today_counts[t],
+                "Previous day frequency": yesterday_counts.get(t, 0),
             })
-
     if not rows:
-        return pd.DataFrame(columns=["Word", "Difference", "Today frequency", "Yesterday frequency"])
-
-    df = pd.DataFrame(rows)
-    df = df.sort_values("Difference", ascending=False).head(top_n)
-    return df
-
+        return pd.DataFrame(columns=["Term", "Difference", "Current day frequency", "Previous day frequency"])
+    return pd.DataFrame(rows).sort_values("Difference", ascending=False).head(top_n)
 
 def get_falling_words_table(today_counts: dict, yesterday_counts: dict, top_n=10):
-    today_words = set(today_counts.keys())
-    yest_words = set(yesterday_counts.keys())
-
     rows = []
-    for w in today_words & yest_words:
-        today_f = today_counts[w]
-        yest_f = yesterday_counts.get(w, 0)
-        delta = today_f - yest_f
-        if delta < 0:  # calo
+    for t in set(today_counts.keys()) & set(yesterday_counts.keys()):
+        d = today_counts[t] - yesterday_counts.get(t, 0)
+        if d < 0:
             rows.append({
-                "Word": w,
-                "Difference": delta,
-                "Today frequency": today_f,
-                "Yesterday frequency": yest_f,
+                "Term": t,
+                "Difference": d,
+                "Current day frequency": today_counts[t],
+                "Previous day frequency": yesterday_counts.get(t, 0),
             })
-
     if not rows:
-        return pd.DataFrame(columns=["Word", "Difference", "Today frequency", "Yesterday frequency"])
-
-    df = pd.DataFrame(rows)
-    # ordina per calo maggiore (delta più negativo)
-    df = df.sort_values("Difference", ascending=True).head(top_n)
-    return df
-
+        return pd.DataFrame(columns=["Term", "Difference", "Current day frequency", "Previous day frequency"])
+    return pd.DataFrame(rows).sort_values("Difference", ascending=True).head(top_n)
 
 def compare_days(today_counts: dict, yesterday_counts: dict, top_n=10):
-    """
-    Stampa un riassunto a console e ritorna
-    (df_new, df_rising, df_falling).
-    """
     df_new = get_new_words_table(today_counts, yesterday_counts, top_n=top_n)
     df_rising = get_rising_words_table(today_counts, yesterday_counts, top_n=top_n)
     df_falling = get_falling_words_table(today_counts, yesterday_counts, top_n=top_n)
-
-    print("\n=== TOP NUOVE PAROLE (oggi ma non ieri) ===")
-    if df_new.empty:
-        print("Nessuna nuova parola.")
-    else:
-        for _, row in df_new.iterrows():
-            print(f"{row['Word']:25s} {int(row['Today frequency'])}")
-
-    print("\n=== TOP PAROLE IN CRESCITA (oggi >> ieri) ===")
-    if df_rising.empty:
-        print("Nessuna parola in crescita.")
-    else:
-        for _, row in df_rising.iterrows():
-            print(
-                f"{row['Word']:25s} +{int(row['Difference']):3d} "
-                f"(yesterday: {int(row['Yesterday frequency'])}, today: {int(row['Today frequency'])})"
-            )
-
-    print("\n=== TOP PAROLE IN CALO (oggi << ieri) ===")
-    if df_falling.empty:
-        print("Nessuna parola in calo.")
-    else:
-        for _, row in df_falling.iterrows():
-            print(
-                f"{row['Word']:25s} {int(row['Difference']):3d} "
-                f"(yesterday: {int(row['Yesterday frequency'])}, today: {int(row['Today frequency'])})"
-            )
-
     return df_new, df_rising, df_falling
 
+def get_top_terms_table(counts: dict, top_n=10):
+    if not counts:
+        return pd.DataFrame(columns=["Term", "Frequency"])
+    rows = [{"Term": t, "Frequency": f} for t, f in Counter(counts).most_common(top_n)]
+    return pd.DataFrame(rows)
 
 # ------------------------
-# 8. DASHBOARD HTML (senza slider)
+# 8. WEEK VIEW DASHBOARD (your design + Date buttons + Top 15 terms)
 # ------------------------
-def save_dashboard_html_multi(today: date, per_country_results: dict):
-    """
-    per_country_results: dict
-      country -> {
-        "new_df": DataFrame or None,
-        "rising_df": DataFrame or None,
-        "falling_df": DataFrame or None,
-        "wc_rel_path": str (path all'immagine di oggi)
-      }
-    """
-    generated_at = datetime.now()
-    generated_str = generated_at.strftime("%d %b %Y, %H:%M")
+def list_available_days(data_dir: Path, country: str):
+    suffix = f"_{country}_terms.json"
+    days = []
+    for p in data_dir.glob(f"*{suffix}"):
+        try:
+            day_str = p.name.split("_")[0]
+            days.append(date.fromisoformat(day_str))
+        except Exception:
+            continue
+    return sorted(set(days))
+
+def build_per_country_results_for_day(day: date, countries: list[str]):
+    per_country_results = {}
+    for country in countries:
+        today_counts = load_counts_for_day(day, country)
+        if today_counts is None:
+            continue
+
+        top_terms_df = get_top_terms_table(today_counts, top_n=10)
+
+        prev_counts = load_counts_for_day(day - timedelta(days=1), country)
+        new_df = rising_df = falling_df = None
+        if prev_counts is not None:
+            new_df, rising_df, falling_df = compare_days(today_counts, prev_counts, top_n=10)
+
+        wc_path = get_wordcloud_filename_for_day(day, country)
+        wc_rel = os.path.join("data", wc_path.name)
+
+        per_country_results[country] = {
+            "top_terms_df": top_terms_df,
+            "new_df": new_df,
+            "rising_df": rising_df,
+            "falling_df": falling_df,
+            "wc_rel_path": wc_rel,
+        }
+    return per_country_results
+
+def save_week_dashboard_html(last_day: date, countries: list[str], days_back: int = 7, out_filename: str = "index.html"):
+    available_days = set()
+    for c in countries:
+        available_days.update(list_available_days(DATA_DIR, c))
+    days = [d for d in sorted(available_days) if d <= last_day][-days_back:]
+
+    if not days:
+        print("[WARN] No saved days found in data/. Cannot build dashboard.")
+        return
+
+    generated_str = datetime.now().strftime("%d %b %Y, %H:%M")
 
     def df_or_message(df, msg):
         if df is None or df.empty:
             return f"<p class='empty-msg'>{msg}</p>"
-        else:
-            html = df.to_html(index=False, classes=["data-table"])
-            return html
+        return df.to_html(index=False, classes=["data-table"])
 
-    country_sections_html = []
-    for country, data in per_country_results.items():
-        new_df = data["new_df"]
-        rising_df = data["rising_df"]
-        falling_df = data["falling_df"]
-        wc_rel_path = data["wc_rel_path"]
-
-        html_new = df_or_message(new_df, "No new words compared to yesterday.")
-        html_rising = df_or_message(rising_df, "No significantly increasing words.")
-        html_falling = df_or_message(falling_df, "No significantly decreasing words.")
-
-        flag = "🇮🇹" if country == "italy" else ("🇬🇧" if country == "uk" else "🏳️")
-
-        section = f"""
-        <div class="country-dashboard" id="country-{country}" style="display:none;">
-            <div class="header-row">
-                <h2>{flag} {country.capitalize()}</h2>
-                <span class="date-pill">Updated: {generated_str}</span>
-            </div>
-
-            <div class="content-grid">
-                <div class="card">
-                    <h3>Today's wordcloud</h3>
-                    <img src="{wc_rel_path}" alt="Wordcloud {country}" class="wordcloud">
-                </div>
-
-                <div class="card tables-card">
-                    <h3>Top 10 new words (today vs yesterday)</h3>
-                    {html_new}
-                    <h3>Top 10 increasing words (today ≫ yesterday)</h3>
-                    {html_rising}
-                    <h3>Top 10 decreasing words (today ≪ yesterday)</h3>
-                    {html_falling}
-                </div>
-            </div>
-        </div>
-        """
-        country_sections_html.append(section)
+    # buttons
+    day_buttons_html = "".join(
+        f'<button class="country-btn day-btn" data-day="{d.isoformat()}">{d.isoformat()}</button>'
+        for d in days
+    )
 
     def country_label(c: str) -> str:
         if c == "italy":
@@ -545,10 +487,51 @@ def save_dashboard_html_multi(today: date, per_country_results: dict):
             return "🇬🇧 UK"
         return c.capitalize()
 
-    buttons_html = "".join(
-        f'<button class="country-btn" data-country="{c}">{country_label(c)}</button>'
-        for c in per_country_results.keys()
+    country_buttons_html = "".join(
+        f'<button class="country-btn country-only-btn" data-country="{c}">{country_label(c)}</button>'
+        for c in countries
     )
+
+    # panels
+    panels_html = []
+    for d in days:
+        per_country = build_per_country_results_for_day(d, countries)
+        for country, data in per_country.items():
+            flag = "🇮🇹" if country == "italy" else ("🇬🇧" if country == "uk" else "🏳️")
+
+            html_top = df_or_message(data["top_terms_df"], "No terms found for this day.")
+            html_new = df_or_message(data["new_df"], "No new terms compared to previous day.")
+            html_rising = df_or_message(data["rising_df"], "No significantly increasing terms.")
+            html_falling = df_or_message(data["falling_df"], "No significantly decreasing terms.")
+
+            panel = f"""
+            <div class="country-dashboard panel" id="panel-{d.isoformat()}-{country}" data-day="{d.isoformat()}" data-country="{country}" style="display:none;">
+                <div class="header-row">
+                    <h2>{flag} {country.capitalize()} — {d.isoformat()}</h2>
+                    <span class="date-pill">Updated: {generated_str}</span>
+                </div>
+
+                <div class="content-grid">
+                    <div class="card">
+                        <h3>Wordcloud</h3>
+                        <img src="{data["wc_rel_path"]}" alt="Wordcloud {country} {d.isoformat()}" class="wordcloud">
+                    </div>
+
+                    <div class="card tables-card">
+                        <h3>Top 10 terms</h3>
+                        {html_top}
+
+                        <h3>Top 10 new terms (vs previous day)</h3>
+                        {html_new}
+                        <h3>Top 10 increasing terms (vs previous day)</h3>
+                        {html_rising}
+                        <h3>Top 10 decreasing terms (vs previous day)</h3>
+                        {html_falling}
+                    </div>
+                </div>
+            </div>
+            """
+            panels_html.append(panel)
 
     full_html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -569,9 +552,7 @@ def save_dashboard_html_multi(today: date, per_country_results: dict):
             --font-mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
         }}
 
-        * {{
-            box-sizing: border-box;
-        }}
+        * {{ box-sizing: border-box; }}
 
         body {{
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -604,7 +585,7 @@ def save_dashboard_html_multi(today: date, per_country_results: dict):
         .sidebar p {{
             color: var(--text-muted);
             font-size: 0.85rem;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
         }}
 
         .country-btn {{
@@ -767,13 +748,8 @@ def save_dashboard_html_multi(today: date, per_country_results: dict):
             font-size: 0.82rem;
         }}
 
-        table.data-table tr:nth-child(even) {{
-            background-color: #0b1220;
-        }}
-
-        table.data-table tr:nth-child(odd) {{
-            background-color: #050b18;
-        }}
+        table.data-table tr:nth-child(even) {{ background-color: #0b1220; }}
+        table.data-table tr:nth-child(odd)  {{ background-color: #050b18; }}
 
         table.data-table td:nth-child(2),
         table.data-table td:nth-child(3),
@@ -785,120 +761,131 @@ def save_dashboard_html_multi(today: date, per_country_results: dict):
 </head>
 <body>
     <div class="sidebar">
-        <h2>Select a Country</h2>
-        <p>Click a country to explore its top topics, emerging words, and fading stories.</p>
-        {buttons_html}
+        <h2>Select Date</h2>
+        <p>Pick a day from the last week (available saved data).</p>
+        {day_buttons_html}
+        <h2 style="margin-top:16px;">Select Country</h2>
+        <p>Then pick a country.</p>
+        {country_buttons_html}
     </div>
     <div class="container">
         <h1>European News Dashboard</h1>
-        <p class="subtitle">Daily RSS headlines analysis – key words and trends compared to yesterday.</p>
+        <p class="subtitle">Week view – key terms (unigrams + bigrams) and trends vs previous day.</p>
         <p class="updated-info">Last update: {generated_str}</p>
-        {''.join(country_sections_html)}
+        {''.join(panels_html)}
     </div>
 
     <script>
-        const dashboards = document.querySelectorAll('.country-dashboard');
-        const buttons = document.querySelectorAll('.country-btn');
+        const panels = document.querySelectorAll('.panel');
+        const dayButtons = document.querySelectorAll('.day-btn');
+        const countryButtons = document.querySelectorAll('.country-only-btn');
 
-        function showCountry(country) {{
-            dashboards.forEach(d => {{
-                if (d.id === 'country-' + country) {{
-                    d.style.display = 'block';
-                }} else {{
-                    d.style.display = 'none';
-                }}
+        let selectedDay = null;
+        let selectedCountry = null;
+
+        function showPanel(day, country) {{
+            panels.forEach(p => {{
+                const ok = (p.getAttribute('data-day') === day) && (p.getAttribute('data-country') === country);
+                p.style.display = ok ? 'block' : 'none';
             }});
-            buttons.forEach(b => {{
-                if (b.getAttribute('data-country') === country) {{
-                    b.classList.add('active');
-                }} else {{
-                    b.classList.remove('active');
-                }}
+
+            dayButtons.forEach(b => {{
+                b.classList.toggle('active', b.getAttribute('data-day') === day);
+            }});
+
+            countryButtons.forEach(b => {{
+                b.classList.toggle('active', b.getAttribute('data-country') === country);
             }});
         }}
 
-        buttons.forEach(btn => {{
+        dayButtons.forEach(btn => {{
             btn.addEventListener('click', () => {{
-                const country = btn.getAttribute('data-country');
-                showCountry(country);
+                selectedDay = btn.getAttribute('data-day');
+                if (selectedCountry === null && countryButtons.length > 0) {{
+                    selectedCountry = countryButtons[0].getAttribute('data-country');
+                }}
+                showPanel(selectedDay, selectedCountry);
+            }});
+        }});
+
+        countryButtons.forEach(btn => {{
+            btn.addEventListener('click', () => {{
+                selectedCountry = btn.getAttribute('data-country');
+                if (selectedDay === null && dayButtons.length > 0) {{
+                    selectedDay = dayButtons[dayButtons.length - 1].getAttribute('data-day');
+                }}
+                showPanel(selectedDay, selectedCountry);
             }});
         }});
 
         window.addEventListener('DOMContentLoaded', () => {{
-            if (buttons.length > 0) {{
-                const firstCountry = buttons[0].getAttribute('data-country');
-                showCountry(firstCountry);
+            if (dayButtons.length > 0) {{
+                selectedDay = dayButtons[dayButtons.length - 1].getAttribute('data-day'); // newest
+            }}
+            if (countryButtons.length > 0) {{
+                selectedCountry = countryButtons[0].getAttribute('data-country');
+            }}
+            if (selectedDay && selectedCountry) {{
+                showPanel(selectedDay, selectedCountry);
             }}
         }});
     </script>
 </body>
 </html>
 """
-    out_path = BASE_DIR / "index.html"
-    out_path.parent.mkdir(exist_ok=True)
+    out_path = BASE_DIR / out_filename
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(full_html)
-
-    print("[INFO] Saved multi-country dashboard (no slider) to", out_path)
-
+    print("[INFO] Saved dashboard to", out_path)
 
 # ------------------------
-# 9. MAIN
+# 9. MAIN (index.html is the week dashboard)
 # ------------------------
 if __name__ == "__main__":
-    today = date.today()
-    yesterday = today - timedelta(days=1)
+    # Coerente con fetch_articles() che filtra per "oggi" in UTC
+    today = datetime.now(timezone.utc).date()
 
     print("[DEBUG] Current working directory:", os.getcwd())
 
-    per_country_results = {}
+    MIN_BIGRAM_BY_COUNTRY = {"italy": 1, "uk": 2}
 
     for country, feeds in COUNTRY_FEEDS.items():
         print(f"\n=== Processing {country} ===")
 
-        # 1. Fetch RSS e tokenizzazione
         raw_text = fetch_articles(feeds)
-        stopwords_set = STOPWORDS_BY_COUNTRY.get(
-            country, STOP_IT | STOP_EN | COMMON_STOPWORDS
-        )
+        stopwords_set = STOPWORDS_BY_COUNTRY.get(country, STOP_IT | STOP_EN | COMMON_STOPWORDS)
 
-        # Per UK usiamo spaCy per tenere solo NOUN/PROPN
-        use_spacy = (country == "uk" and nlp_en is not None)
-        tokens = tokenize_and_filter(
+        # spaCy pipeline per lingua
+        nlp = nlp_it if country == "italy" else (nlp_en if country == "uk" else None)
+
+        # scelta POS filtering (UK più “pulito”)
+        only_nouns_propn = (country == "uk")
+
+        pairs = tokenize_term_pairs(
             raw_text,
-            stopwords_set,
-            use_spacy_nouns=use_spacy,
-            nlp=nlp_en if use_spacy else None,
+            stopwords_set=stopwords_set,
+            nlp=nlp,
+            only_nouns_propn=only_nouns_propn,
         )
 
-        # 2. Analisi base del giorno
-        show_top_words(tokens, x=15)
+        min_bigram = MIN_BIGRAM_BY_COUNTRY.get(country, 2)
 
-        # 3. Frequenze e salvataggio
-        today_counts = get_word_counts(tokens)
+        today_counts = get_term_counts_from_pairs(
+            pairs,
+            stopwords_set=stopwords_set,
+            min_bigram_freq=min_bigram,
+            include_bigrams=True,
+        )
+
         save_counts_for_day(today, country, today_counts)
 
-        # 4. Confronto con ieri
-        yesterday_counts = load_counts_for_day(yesterday, country)
-        new_df = rising_df = falling_df = None
-        if yesterday_counts is not None:
-            new_df, rising_df, falling_df = compare_days(
-                today_counts, yesterday_counts, top_n=10
-            )
-        else:
-            print("\nNo data for yesterday, cannot compare yet for", country)
-
-        # 5. Wordcloud del giorno (file con data nel nome)
         wc_path_today = get_wordcloud_filename_for_day(today, country)
-        make_wordcloud_from_tokens(tokens, stopwords_set, save_path=str(wc_path_today))
-        wc_rel_path_today = os.path.join("data", wc_path_today.name)
+        make_wordcloud_from_term_counts(today_counts, save_path=str(wc_path_today))
 
-        per_country_results[country] = {
-            "new_df": new_df,
-            "rising_df": rising_df,
-            "falling_df": falling_df,
-            "wc_rel_path": wc_rel_path_today,
-        }
+    save_week_dashboard_html(
+        today,
+        countries=list(COUNTRY_FEEDS.keys()),
+        days_back=7,
+        out_filename="index.html",
+    )
 
-    # 7. Dashboard HTML
-    save_dashboard_html_multi(today, per_country_results)
