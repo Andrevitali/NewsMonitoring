@@ -1,4 +1,4 @@
-name: Update News Polls Dashboard
+name: Update News Dashboard
 permissions:
   contents: write
 on:
