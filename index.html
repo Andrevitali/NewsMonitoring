@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>European News Dashboard - 22 Dec 2025, 19:16</title>
+    <title>European News Dashboard - 22 Dec 2025, 22:20</title>
     <style>
         :root {
             --bg-main: #05070a;
@@ -17,9 +17,7 @@
             --font-mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -52,7 +50,7 @@
         .sidebar p {
             color: var(--text-muted);
             font-size: 0.85rem;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
         }
 
         .country-btn {
@@ -215,13 +213,8 @@
             font-size: 0.82rem;
         }
 
-        table.data-table tr:nth-child(even) {
-            background-color: #0b1220;
-        }
-
-        table.data-table tr:nth-child(odd) {
-            background-color: #050b18;
-        }
+        table.data-table tr:nth-child(even) { background-color: #0b1220; }
+        table.data-table tr:nth-child(odd)  { background-color: #050b18; }
 
         table.data-table td:nth-child(2),
         table.data-table td:nth-child(3),
@@ -233,477 +226,222 @@
 </head>
 <body>
     <div class="sidebar">
-        <h2>Select a Country</h2>
-        <p>Click a country to explore its top topics, emerging words, and fading stories.</p>
-        <button class="country-btn" data-country="italy">🇮🇹 Italy</button><button class="country-btn" data-country="uk">🇬🇧 UK</button>
+        <h2>Select Date</h2>
+        <p>Pick a day from the last week (available saved data).</p>
+        <button class="country-btn day-btn" data-day="2025-12-22">2025-12-22</button>
+        <h2 style="margin-top:16px;">Select Country</h2>
+        <p>Then pick a country.</p>
+        <button class="country-btn country-only-btn" data-country="italy">🇮🇹 Italy</button><button class="country-btn country-only-btn" data-country="uk">🇬🇧 UK</button>
     </div>
     <div class="container">
         <h1>European News Dashboard</h1>
-        <p class="subtitle">Daily RSS headlines analysis – key words and trends compared to yesterday.</p>
-        <p class="updated-info">Last update: 22 Dec 2025, 19:16</p>
+        <p class="subtitle">Week view – key terms (unigrams + bigrams) and trends vs previous day.</p>
+        <p class="updated-info">Last update: 22 Dec 2025, 22:20</p>
         
-        <div class="country-dashboard" id="country-italy" style="display:none;">
-            <div class="header-row">
-                <h2>🇮🇹 Italy</h2>
-                <span class="date-pill">Updated: 22 Dec 2025, 19:16</span>
-            </div>
-
-            <div class="content-grid">
-                <div class="card">
-                    <h3>Today's wordcloud</h3>
-                    <img src="data/2025-12-22_italy_wordcloud.png" alt="Wordcloud italy" class="wordcloud">
+            <div class="country-dashboard panel" id="panel-2025-12-22-italy" data-day="2025-12-22" data-country="italy" style="display:none;">
+                <div class="header-row">
+                    <h2>🇮🇹 Italy — 2025-12-22</h2>
+                    <span class="date-pill">Updated: 22 Dec 2025, 22:20</span>
                 </div>
 
-                <div class="card tables-card">
-                    <h3>Top 10 new words (today vs yesterday)</h3>
-                    <table border="1" class="dataframe data-table">
+                <div class="content-grid">
+                    <div class="card">
+                        <h3>Wordcloud</h3>
+                        <img src="data/2025-12-22_italy_wordcloud.png" alt="Wordcloud italy 2025-12-22" class="wordcloud">
+                    </div>
+
+                    <div class="card tables-card">
+                        <h3>Top 10 terms</h3>
+                        <table border="1" class="dataframe data-table">
   <thead>
     <tr style="text-align: right;">
-      <th>Word</th>
-      <th>Today frequency</th>
+      <th>Term</th>
+      <th>Frequency</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>mattarella</td>
+      <td>Manovra</td>
+      <td>12</td>
+    </tr>
+    <tr>
+      <td>Mosca</td>
+      <td>11</td>
+    </tr>
+    <tr>
+      <td>Mattarella</td>
       <td>10</td>
     </tr>
     <tr>
-      <td>grazia</td>
-      <td>6</td>
+      <td>auto</td>
+      <td>8</td>
     </tr>
     <tr>
-      <td>generale</td>
-      <td>6</td>
+      <td>Kiev</td>
+      <td>7</td>
     </tr>
     <tr>
-      <td>milano</td>
+      <td>Ucraina</td>
       <td>5</td>
-    </tr>
-    <tr>
-      <td>aerei</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <td>cinque</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <td>consegna</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <td>grazie</td>
-      <td>4</td>
-    </tr>
-    <tr>
-      <td>pericolo</td>
-      <td>4</td>
-    </tr>
-    <tr>
-      <td>giorgetti</td>
-      <td>4</td>
-    </tr>
-  </tbody>
-</table>
-                    <h3>Top 10 increasing words (today ≫ yesterday)</h3>
-                    <table border="1" class="dataframe data-table">
-  <thead>
-    <tr style="text-align: right;">
-      <th>Word</th>
-      <th>Difference</th>
-      <th>Today frequency</th>
-      <th>Yesterday frequency</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>mosca</td>
-      <td>6</td>
-      <td>11</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <td>manovra</td>
-      <td>6</td>
-      <td>12</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <td>meloni</td>
-      <td>4</td>
-      <td>5</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>zelensky</td>
-      <td>3</td>
-      <td>4</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>pace</td>
-      <td>3</td>
-      <td>4</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>russo</td>
-      <td>3</td>
-      <td>4</td>
-      <td>1</td>
     </tr>
     <tr>
       <td>milioni</td>
-      <td>2</td>
-      <td>4</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>anno</td>
-      <td>2</td>
-      <td>3</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>guerra</td>
-      <td>2</td>
-      <td>4</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>enne</td>
-      <td>2</td>
-      <td>6</td>
-      <td>4</td>
-    </tr>
-  </tbody>
-</table>
-                    <h3>Top 10 decreasing words (today ≪ yesterday)</h3>
-                    <table border="1" class="dataframe data-table">
-  <thead>
-    <tr style="text-align: right;">
-      <th>Word</th>
-      <th>Difference</th>
-      <th>Today frequency</th>
-      <th>Yesterday frequency</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>epstein</td>
-      <td>-7</td>
-      <td>1</td>
-      <td>8</td>
-    </tr>
-    <tr>
-      <td>ucraina</td>
-      <td>-6</td>
-      <td>5</td>
-      <td>11</td>
-    </tr>
-    <tr>
-      <td>usa</td>
-      <td>-6</td>
-      <td>2</td>
-      <td>8</td>
-    </tr>
-    <tr>
-      <td>collisione</td>
-      <td>-5</td>
-      <td>1</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <td>nilo</td>
-      <td>-5</td>
-      <td>2</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>italiana</td>
-      <td>-5</td>
-      <td>2</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>miami</td>
-      <td>-5</td>
-      <td>1</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <td>san</td>
-      <td>-4</td>
-      <td>1</td>
       <td>5</td>
     </tr>
     <tr>
-      <td>putin</td>
-      <td>-4</td>
-      <td>2</td>
-      <td>6</td>
+      <td>Olanda</td>
+      <td>5</td>
     </tr>
     <tr>
-      <td>caso</td>
-      <td>-4</td>
-      <td>2</td>
-      <td>6</td>
+      <td>folla</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>feriti</td>
+      <td>5</td>
     </tr>
   </tbody>
 </table>
+
+                        <h3>Top 10 new terms (vs previous day)</h3>
+                        <p class='empty-msg'>No new terms compared to previous day.</p>
+                        <h3>Top 10 increasing terms (vs previous day)</h3>
+                        <p class='empty-msg'>No significantly increasing terms.</p>
+                        <h3>Top 10 decreasing terms (vs previous day)</h3>
+                        <p class='empty-msg'>No significantly decreasing terms.</p>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="country-dashboard" id="country-uk" style="display:none;">
-            <div class="header-row">
-                <h2>🇬🇧 Uk</h2>
-                <span class="date-pill">Updated: 22 Dec 2025, 19:16</span>
-            </div>
-
-            <div class="content-grid">
-                <div class="card">
-                    <h3>Today's wordcloud</h3>
-                    <img src="data/2025-12-22_uk_wordcloud.png" alt="Wordcloud uk" class="wordcloud">
+            
+            <div class="country-dashboard panel" id="panel-2025-12-22-uk" data-day="2025-12-22" data-country="uk" style="display:none;">
+                <div class="header-row">
+                    <h2>🇬🇧 Uk — 2025-12-22</h2>
+                    <span class="date-pill">Updated: 22 Dec 2025, 22:20</span>
                 </div>
 
-                <div class="card tables-card">
-                    <h3>Top 10 new words (today vs yesterday)</h3>
-                    <table border="1" class="dataframe data-table">
+                <div class="content-grid">
+                    <div class="card">
+                        <h3>Wordcloud</h3>
+                        <img src="data/2025-12-22_uk_wordcloud.png" alt="Wordcloud uk 2025-12-22" class="wordcloud">
+                    </div>
+
+                    <div class="card tables-card">
+                        <h3>Top 10 terms</h3>
+                        <table border="1" class="dataframe data-table">
   <thead>
     <tr style="text-align: right;">
-      <th>Word</th>
-      <th>Today frequency</th>
+      <th>Term</th>
+      <th>Frequency</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>chris</td>
-      <td>8</td>
+      <td>Christmas</td>
+      <td>24</td>
     </tr>
     <tr>
-      <td>rea</td>
-      <td>8</td>
+      <td>Trump</td>
+      <td>17</td>
     </tr>
     <tr>
-      <td>union</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>greenland</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>driving</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>singer</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>moscow</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>customs</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>bomb</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>charged</td>
-      <td>6</td>
-    </tr>
-  </tbody>
-</table>
-                    <h3>Top 10 increasing words (today ≫ yesterday)</h3>
-                    <table border="1" class="dataframe data-table">
-  <thead>
-    <tr style="text-align: right;">
-      <th>Word</th>
-      <th>Difference</th>
-      <th>Today frequency</th>
-      <th>Yesterday frequency</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>general</td>
-      <td>10</td>
-      <td>11</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>killed</td>
-      <td>8</td>
-      <td>9</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>car</td>
-      <td>7</td>
-      <td>8</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>talks</td>
-      <td>7</td>
-      <td>8</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>russian</td>
-      <td>6</td>
-      <td>9</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>envoy</td>
-      <td>6</td>
-      <td>7</td>
-      <td>1</td>
+      <td>Action</td>
+      <td>12</td>
     </tr>
     <tr>
       <td>dies</td>
-      <td>5</td>
-      <td>7</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>concerns</td>
-      <td>4</td>
-      <td>5</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>offences</td>
-      <td>4</td>
-      <td>5</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>london</td>
-      <td>4</td>
-      <td>7</td>
-      <td>3</td>
-    </tr>
-  </tbody>
-</table>
-                    <h3>Top 10 decreasing words (today ≪ yesterday)</h3>
-                    <table border="1" class="dataframe data-table">
-  <thead>
-    <tr style="text-align: right;">
-      <th>Word</th>
-      <th>Difference</th>
-      <th>Today frequency</th>
-      <th>Yesterday frequency</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>epstein</td>
-      <td>-9</td>
-      <td>9</td>
-      <td>18</td>
-    </tr>
-    <tr>
-      <td>third</td>
-      <td>-8</td>
-      <td>1</td>
-      <td>9</td>
-    </tr>
-    <tr>
-      <td>record</td>
-      <td>-7</td>
-      <td>3</td>
-      <td>10</td>
-    </tr>
-    <tr>
-      <td>files</td>
-      <td>-7</td>
-      <td>7</td>
-      <td>14</td>
-    </tr>
-    <tr>
-      <td>utd</td>
-      <td>-6</td>
-      <td>1</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <td>west</td>
-      <td>-6</td>
-      <td>4</td>
-      <td>10</td>
-    </tr>
-    <tr>
-      <td>occupied</td>
-      <td>-5</td>
-      <td>1</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <td>israel</td>
-      <td>-5</td>
-      <td>3</td>
       <td>8</td>
     </tr>
     <tr>
-      <td>channel</td>
-      <td>-5</td>
-      <td>2</td>
+      <td>Palestine</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>general</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>Palestine Action</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>wife</td>
       <td>7</td>
     </tr>
     <tr>
-      <td>australia</td>
-      <td>-4</td>
-      <td>1</td>
-      <td>5</td>
+      <td>envoy</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>Greenland</td>
+      <td>7</td>
     </tr>
   </tbody>
 </table>
+
+                        <h3>Top 10 new terms (vs previous day)</h3>
+                        <p class='empty-msg'>No new terms compared to previous day.</p>
+                        <h3>Top 10 increasing terms (vs previous day)</h3>
+                        <p class='empty-msg'>No significantly increasing terms.</p>
+                        <h3>Top 10 decreasing terms (vs previous day)</h3>
+                        <p class='empty-msg'>No significantly decreasing terms.</p>
+                    </div>
                 </div>
             </div>
-        </div>
-        
+            
     </div>
 
     <script>
-        const dashboards = document.querySelectorAll('.country-dashboard');
-        const buttons = document.querySelectorAll('.country-btn');
+        const panels = document.querySelectorAll('.panel');
+        const dayButtons = document.querySelectorAll('.day-btn');
+        const countryButtons = document.querySelectorAll('.country-only-btn');
 
-        function showCountry(country) {
-            dashboards.forEach(d => {
-                if (d.id === 'country-' + country) {
-                    d.style.display = 'block';
-                } else {
-                    d.style.display = 'none';
-                }
+        let selectedDay = null;
+        let selectedCountry = null;
+
+        function showPanel(day, country) {
+            panels.forEach(p => {
+                const ok = (p.getAttribute('data-day') === day) && (p.getAttribute('data-country') === country);
+                p.style.display = ok ? 'block' : 'none';
             });
-            buttons.forEach(b => {
-                if (b.getAttribute('data-country') === country) {
-                    b.classList.add('active');
-                } else {
-                    b.classList.remove('active');
-                }
+
+            dayButtons.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-day') === day);
+            });
+
+            countryButtons.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-country') === country);
             });
         }
 
-        buttons.forEach(btn => {
+        dayButtons.forEach(btn => {
             btn.addEventListener('click', () => {
-                const country = btn.getAttribute('data-country');
-                showCountry(country);
+                selectedDay = btn.getAttribute('data-day');
+                if (selectedCountry === null && countryButtons.length > 0) {
+                    selectedCountry = countryButtons[0].getAttribute('data-country');
+                }
+                showPanel(selectedDay, selectedCountry);
+            });
+        });
+
+        countryButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedCountry = btn.getAttribute('data-country');
+                if (selectedDay === null && dayButtons.length > 0) {
+                    selectedDay = dayButtons[dayButtons.length - 1].getAttribute('data-day');
+                }
+                showPanel(selectedDay, selectedCountry);
             });
         });
 
         window.addEventListener('DOMContentLoaded', () => {
-            if (buttons.length > 0) {
-                const firstCountry = buttons[0].getAttribute('data-country');
-                showCountry(firstCountry);
+            if (dayButtons.length > 0) {
+                selectedDay = dayButtons[dayButtons.length - 1].getAttribute('data-day'); // newest
+            }
+            if (countryButtons.length > 0) {
+                selectedCountry = countryButtons[0].getAttribute('data-country');
+            }
+            if (selectedDay && selectedCountry) {
+                showPanel(selectedDay, selectedCountry);
             }
         });
     </script>
