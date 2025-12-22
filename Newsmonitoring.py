@@ -96,22 +96,30 @@ COUNTRY_FEEDS = {
 }
 
 # ------------------------
-# 1-bis. FETCH ARTICLES ONLY FROM TODAY (UTC)
+# 1-bis. FETCH TITLES ONLY FROM TODAY (UTC)
 # ------------------------
-def fetch_articles(feeds):
+def fetch_titles(feeds):
     """
-    Scarica i titoli dai feed RSS e li concatena in un'unica stringa.
-    Tiene solo gli articoli pubblicati OGGI (per data, in UTC).
+    Scarica i titoli dai feed RSS.
+    Tiene solo gli articoli pubblicati OGGI (in UTC).
+    Ritorna una LISTA di titoli (non una stringa concatenata).
     """
     today_date = datetime.now(timezone.utc).date()
-    texts = []
+    titles = []
 
     for url in feeds:
         print("[RSS]", url)
         feed = feedparser.parse(url)
 
-        for entry in feed.entries:
-            title = entry.get("title", "")
+        # opzionale: log errori parsing
+        if getattr(feed, "bozo", 0):
+            ex = getattr(feed, "bozo_exception", None)
+            print(f"[WARN] Feed parse issue for {url}: {ex}")
+
+        for entry in getattr(feed, "entries", []):
+            title = (entry.get("title", "") or "").strip()
+            if not title:
+                continue
 
             dt_struct = entry.get("published_parsed") or entry.get("updated_parsed")
             if not dt_struct:
@@ -119,10 +127,10 @@ def fetch_articles(feeds):
 
             dt = datetime.fromtimestamp(calendar.timegm(dt_struct), tz=timezone.utc)
             if dt.date() == today_date:
-                texts.append(title)
+                titles.append(title)
 
     print("______________________________")
-    return " ".join(texts)
+    return titles
 
 # ------------------------
 # 2. STOPWORDS CUSTOM
@@ -136,8 +144,8 @@ COMMON_STOPWORDS = {
     "un", "una", "uno", "nel", "nella", "nelle", "negli",
     "e", "ed", "le", "è", "ecco",
     "poi", "senza", "mai", "anni",
-    "nuova", "tutto", "cosa", "casa","nuovo","nuova","nuove","nuovi","ora",
-    "repubblica", "ansa", "rai", "rainews", "notizie", "italia","italiani"
+    "nuova", "tutto", "cosa", "casa", "nuovo", "nuova", "nuove", "nuovi", "ora",
+    "repubblica", "ansa", "rai", "rainews", "notizie", "italia", "italiani",
     # Inglesi generici
     "today", "yesterday", "two", "three", "only", "again",
     "after", "before", "against", "according",
@@ -261,51 +269,107 @@ def tokenize_term_pairs(text, stopwords_set, nlp=None, only_nouns_propn=True):
         out.append((key, w))
     return out
 
-# ------------------------
-# 4. TERM COUNTS (UNIGRAMS + BIGRAMS) with display casing
-# ------------------------
-def get_term_counts_from_pairs(pairs, stopwords_set=None, min_bigram_freq=2, include_bigrams=True):
+def extract_entity_pairs(text, nlp, stopwords_set, allowed_labels=None):
     """
-    pairs: list[(key_lower, display_form)]
-    Returns:
-      counts: dict[term_display -> freq]
+    Estrae entità spaCy multi-parola e le ritorna come (key_lower, display).
     """
-    key_counts = Counter()
-    display_counter_by_key = {}
+    if nlp is None:
+        return []
 
-    # unigrams
-    for key, disp in pairs:
-        key_counts[key] += 1
-        if key not in display_counter_by_key:
-            display_counter_by_key[key] = Counter()
-        display_counter_by_key[key][disp] += 1
+    if allowed_labels is None:
+        allowed_labels = {"PERSON", "ORG", "GPE", "LOC", "NORP"}
 
-    # best display per key
-    best_display = {k: c.most_common(1)[0][0] for k, c in display_counter_by_key.items()}
+    doc = nlp(text)
+    out = []
 
-    # bigrams
-    bigram_key_counts = Counter()
-    if include_bigrams:
-        for (k1, _), (k2, _) in zip(pairs, pairs[1:]):
-            if stopwords_set is not None and (k1 in stopwords_set or k2 in stopwords_set):
-                continue
-            bigram_key_counts[f"{k1} {k2}"] += 1
+    for ent in doc.ents:
+        if ent.label_ not in allowed_labels:
+            continue
 
-        if min_bigram_freq and min_bigram_freq > 1:
-            bigram_key_counts = Counter({k: v for k, v in bigram_key_counts.items() if v >= min_bigram_freq})
+        disp = re.sub(r"\s+", " ", ent.text.strip())
+        if len(disp) < 3:
+            continue
 
-    # final dict using display forms
-    final_counts = {}
-    for k, v in key_counts.items():
-        final_counts[best_display.get(k, k)] = v
+        key = disp.lower()
 
-    for bigram_key, v in bigram_key_counts.items():
-        k1, k2 = bigram_key.split(" ", 1)
-        d1 = best_display.get(k1, k1)
-        d2 = best_display.get(k2, k2)
-        final_counts[f"{d1} {d2}"] = v
+        # scarta entità composte SOLO da stopwords
+        parts = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", key)
+        if parts and all(p in stopwords_set for p in parts):
+            continue
 
-    return final_counts
+        out.append((key, disp))
+
+    return out
+
+# ------------------------
+# 4. DOCUMENT FREQUENCY COUNTS (UNIGRAMS + BIGRAMS) per titolo
+# ------------------------
+from collections import Counter, defaultdict
+
+def get_document_frequency_counts(
+    titles: list[str],
+    stopwords_set,
+    nlp=None,
+    only_nouns_propn=True,
+    include_bigrams=True,
+    min_bigram_freq=2,
+):
+    df_uni = Counter()                 # key -> DF
+    df_bi  = Counter()                 # "k1 k2" -> DF
+    display_votes = defaultdict(Counter)  # key -> Counter(display)
+
+    for title in titles:
+        # 1) token “normali” (per bigrammi + unigrammi)
+        token_pairs = tokenize_term_pairs(
+            title,
+            stopwords_set=stopwords_set,
+            nlp=nlp,
+            only_nouns_propn=only_nouns_propn,
+        )
+        if not token_pairs:
+            token_pairs = []
+
+        # 2) entità (solo unigrammi)
+        entity_pairs = extract_entity_pairs(title, nlp=nlp, stopwords_set=stopwords_set)
+
+        # 3) voti display (token + entità)
+        for k, disp in token_pairs:
+            if disp:
+                display_votes[k][disp] += 1
+        for k, disp in entity_pairs:
+            if disp:
+                display_votes[k][disp] += 1
+
+        # 4) DF unigrams: 1 per titolo (token + entità)
+        keys_in_title = {k for k, _ in token_pairs}
+        keys_in_title.update(k for k, _ in entity_pairs)
+        for k in keys_in_title:
+            df_uni[k] += 1
+
+        # 5) DF bigrams: SOLO token adiacenti nel titolo
+        if include_bigrams and len(token_pairs) >= 2:
+            seen_bigrams = set()
+            for (k1, _), (k2, _) in zip(token_pairs, token_pairs[1:]):
+                if (k1 in stopwords_set) or (k2 in stopwords_set):
+                    continue
+                seen_bigrams.add((k1, k2))
+            for k1, k2 in seen_bigrams:
+                df_bi[f"{k1} {k2}"] += 1
+
+    # filtra bigrammi rari
+    if min_bigram_freq and min_bigram_freq > 1:
+        df_bi = Counter({k: v for k, v in df_bi.items() if v >= min_bigram_freq})
+
+    # display canonico
+    display_map = {}
+    for k, c in display_votes.items():
+        best = sorted(c.items(), key=lambda x: (-x[1], -len(x[0]), x[0]))[0][0]
+        display_map[k] = best
+
+    final_counts = dict(df_uni)
+    final_counts.update(df_bi)
+    return final_counts, display_map
+
 
 # ------------------------
 # 5. WORDCLOUD (from term counts)
@@ -319,8 +383,8 @@ def make_wordcloud_from_term_counts(term_counts, save_path=None):
         contour_width=3,
         contour_color="white",
         collocations=False,
-        max_words=500,
-        prefer_horizontal=0.5,
+        max_words=350,
+        prefer_horizontal=0.8,
         relative_scaling=1.0,
         random_state=42,
     ).generate_from_frequencies(term_counts)
@@ -418,7 +482,7 @@ def get_top_terms_table(counts: dict, top_n=10):
     return pd.DataFrame(rows)
 
 # ------------------------
-# 8. WEEK VIEW DASHBOARD (your design + Date buttons + Top 15 terms)
+# 8. WEEK VIEW DASHBOARD (index.html)
 # ------------------------
 def list_available_days(data_dir: Path, country: str):
     suffix = f"_{country}_terms.json"
@@ -770,7 +834,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     </div>
     <div class="container">
         <h1>European News Dashboard</h1>
-        <p class="subtitle">Week view – key terms (unigrams + bigrams) and trends vs previous day.</p>
+        <p class="subtitle">Week view – key terms (DF: number of titles mentioning the term) + trends vs previous day.</p>
         <p class="updated-info">Last update: {generated_str}</p>
         {''.join(panels_html)}
     </div>
@@ -842,17 +906,20 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
 # 9. MAIN (index.html is the week dashboard)
 # ------------------------
 if __name__ == "__main__":
-    # Coerente con fetch_articles() che filtra per "oggi" in UTC
+    # Coerente con fetch_titles() che filtra per "oggi" in UTC
     today = datetime.now(timezone.utc).date()
-
     print("[DEBUG] Current working directory:", os.getcwd())
 
-    MIN_BIGRAM_BY_COUNTRY = {"italy": 1, "uk": 2}
+    MIN_BIGRAM_BY_COUNTRY = {"italy": 2, "uk": 2}
 
     for country, feeds in COUNTRY_FEEDS.items():
         print(f"\n=== Processing {country} ===")
 
-        raw_text = fetch_articles(feeds)
+        titles = fetch_titles(feeds)
+
+        # dedup identico (consigliato): elimina duplicati identici mantenendo ordine
+        titles = list(dict.fromkeys([t.strip() for t in titles if t.strip()]))
+
         stopwords_set = STOPWORDS_BY_COUNTRY.get(country, STOP_IT | STOP_EN | COMMON_STOPWORDS)
 
         # spaCy pipeline per lingua
@@ -861,26 +928,33 @@ if __name__ == "__main__":
         # scelta POS filtering (UK più “pulito”)
         only_nouns_propn = (country == "uk")
 
-        pairs = tokenize_term_pairs(
-            raw_text,
+        min_bigram = MIN_BIGRAM_BY_COUNTRY.get(country, 2)
+
+        # Document Frequency counts (1 per titolo)
+        today_counts, display_map = get_document_frequency_counts(
+            titles=titles,
             stopwords_set=stopwords_set,
             nlp=nlp,
             only_nouns_propn=only_nouns_propn,
-        )
-
-        min_bigram = MIN_BIGRAM_BY_COUNTRY.get(country, 2)
-
-        today_counts = get_term_counts_from_pairs(
-            pairs,
-            stopwords_set=stopwords_set,
-            min_bigram_freq=min_bigram,
             include_bigrams=True,
+            min_bigram_freq=min_bigram,
         )
 
         save_counts_for_day(today, country, today_counts)
 
+        # Wordcloud con "etichette" leggibili (display) ma frequenze su key
+        counts_for_wc = {}
+        for k, v in today_counts.items():
+            if " " in k:  # bigram "k1 k2"
+                k1, k2 = k.split(" ", 1)
+                d1 = display_map.get(k1, k1)
+                d2 = display_map.get(k2, k2)
+                counts_for_wc[f"{d1} {d2}"] = v
+            else:
+                counts_for_wc[display_map.get(k, k)] = v
+
         wc_path_today = get_wordcloud_filename_for_day(today, country)
-        make_wordcloud_from_term_counts(today_counts, save_path=str(wc_path_today))
+        make_wordcloud_from_term_counts(counts_for_wc, save_path=str(wc_path_today))
 
     save_week_dashboard_html(
         today,
@@ -888,4 +962,3 @@ if __name__ == "__main__":
         days_back=7,
         out_filename="index.html",
     )
-
