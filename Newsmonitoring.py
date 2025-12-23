@@ -82,7 +82,7 @@ COUNTRY_FEEDS = {
     "italy": [
         "https://www.repubblica.it/rss/homepage/rss2.0.xml",
         "https://www.rainews.it/rss/esteri",
-        "https://www.servizitelevideo.rai.it/televideo/pub/rss101.xml",
+        #"https://www.servizitelevideo.rai.it/televideo/pub/rss101.xml",
         "https://www.ilsole24ore.com/rss/italia.xml",
         "https://www.ilsole24ore.com/rss/mondo.xml",
         "https://www.rainews.it/rss/politica",
