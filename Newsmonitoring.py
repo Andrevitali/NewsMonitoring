@@ -103,7 +103,7 @@ COUNTRY_FEEDS = {
         "https://feeds.bbci.co.uk/news/world/rss.xml?edition=uk",
         "https://feeds.skynews.com/feeds/rss/world.xml",
         "https://feeds.skynews.com/feeds/rss/uk.xml",
-        "https://www.independent.co.uk/news/world/rss"
+        #"https://www.independent.co.uk/news/world/rss"
     ],
 }
 
