@@ -5,3 +5,4 @@ wordcloud
 matplotlib
 pandas
 Pillow
+spaCy

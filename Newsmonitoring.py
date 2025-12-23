@@ -952,39 +952,6 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     print("[INFO] Saved dashboard to", out_path)
 
 
-from IPython.display import display
-
-
-def print_debug_tables(country: str, day: date, today_counts: dict, top_n: int = 20):
-    #print("\n" + "-" * 90)
-    #print(f"[TABLES] {country.upper()} — {day.isoformat()} (UTC)")
-    #print("-" * 90)
-
-    top_uni_df = get_top_terms_table(today_counts, top_n=top_n, kind="unigram")
-    top_bi_df = get_top_terms_table(today_counts, top_n=top_n, kind="bigram")
-
-    #print("\nTop unigrams:")
-    #display(top_uni_df)
-
-    #print("\nTop bigrams:")
-    #display(top_bi_df)
-
-    y_counts = load_counts_for_day(day - timedelta(days=1), country)
-    if y_counts is None:
-        #print("\n(No previous day file found — skipping New/Rising/Falling)")
-        return
-
-    df_new, df_rising, df_falling = compare_days(today_counts, y_counts, top_n=top_n)
-
-    #print("\nNew terms (vs previous day):")
-    #display(df_new)
-
-    #print("\nRising terms (vs previous day):")
-    #display(df_rising)
-
-    #print("\nFalling terms (vs previous day):")
-    #display(df_falling)
-
 
 # ------------------------
 # 9. MAIN (index.html is the week dashboard)
@@ -1023,7 +990,6 @@ if __name__ == "__main__":
         )
 
         save_counts_for_day(today, country, today_counts)
-        print_debug_tables(country, today, today_counts, top_n=20)
 
         # wordcloud labels: use display_map for unigrams, keep bigrams readable
         counts_for_wc = {}
