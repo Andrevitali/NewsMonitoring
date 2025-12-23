@@ -875,7 +875,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
 <body>
     <div class="sidebar">
         <h2>Select Date</h2>
-        <p>Pick a day from the last week (available saved data).</p>
+        <p>Pick a date (last seven days available).</p>
         {day_buttons_html}
         <h2 style="margin-top:16px;">Select Country</h2>
         <p>Then pick a country.</p>
@@ -883,7 +883,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     </div>
     <div class="container">
         <h1>European News Dashboard</h1>
-        <p class="subtitle">Week view – key terms (DF: number of titles mentioning the term) + trends vs previous day.</p>
+        <p class="subtitle">Week view</p>
         <p class="updated-info">Last update: {generated_str}</p>
         {''.join(panels_html)}
     </div>
