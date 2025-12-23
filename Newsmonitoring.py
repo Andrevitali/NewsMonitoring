@@ -617,7 +617,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             panel = f"""
             <div class="country-dashboard panel" id="panel-{d.isoformat()}-{country}" data-day="{d.isoformat()}" data-country="{country}" style="display:none;">
                 <div class="header-row">
-                    <h2>{flag} {country.capitalize()} — {d.isoformat()}</h2>
+                    <h2>{flag} {"UK" if country == "uk" else country.capitalize()} — {d.isoformat()}</h2>
                     <span class="date-pill">Updated: {generated_str}</span>
                 </div>
 
