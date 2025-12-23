@@ -875,10 +875,10 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
 <body>
     <div class="sidebar">
         <h2>Select Date</h2>
-        <p>Pick a date (last seven days available).</p>
+        <p>Pick a date (last seven days available):</p>
         {day_buttons_html}
         <h2 style="margin-top:16px;">Select Country</h2>
-        <p>Then pick a country.</p>
+        <p>Then pick a country:</p>
         {country_buttons_html}
     </div>
     <div class="container">
