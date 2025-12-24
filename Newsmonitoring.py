@@ -1,8 +1,8 @@
 import re
 import os
 import json
-import time
-from datetime import date, timedelta, datetime, timezone
+import calendar
+from datetime import date, timedelta, datetime
 from collections import Counter, defaultdict
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -17,12 +17,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import pandas as pd
-import calendar
+
+# Robust RSS fetching + datetime parsing
+import requests
+from dateutil import parser as dtparser
 
 
-# ------------------------
-# 0. NORMALIZE (for per-feed dedup)
-# ------------------------
+# ============================================================
+# 0) NORMALIZE (per-feed dedup)
+# ============================================================
 def normalize_title_key(t: str) -> str:
     t = t.lower()
     t = re.sub(r"['’]", "", t)
@@ -31,9 +34,9 @@ def normalize_title_key(t: str) -> str:
     return t
 
 
-# ------------------------
-# 0. STOPWORDS NLTK
-# ------------------------
+# ============================================================
+# 0) STOPWORDS NLTK
+# ============================================================
 try:
     _ = stopwords.words("italian")
 except LookupError:
@@ -48,9 +51,9 @@ STOP_IT = set(stopwords.words("italian"))
 STOP_EN = set(stopwords.words("english"))
 
 
-# ------------------------
-# 0-bis. SPACY (EN + IT)
-# ------------------------
+# ============================================================
+# 0-bis) SPACY (EN + IT) optional
+# ============================================================
 try:
     import spacy
 except Exception as e:
@@ -76,14 +79,13 @@ if spacy is not None:
         print("[WARN] spaCy Italian model NOT loaded. Install with: python -m spacy download it_core_news_sm", e)
 
 
-# ------------------------
-# 1. RSS FEEDS PER NAZIONE
-# ------------------------
+# ============================================================
+# 1) RSS FEEDS PER NAZIONE
+# ============================================================
 COUNTRY_FEEDS = {
     "italy": [
         "https://www.repubblica.it/rss/homepage/rss2.0.xml",
         "https://www.rainews.it/rss/esteri",
-        #"https://www.servizitelevideo.rai.it/televideo/pub/rss101.xml",
         "https://www.ilsole24ore.com/rss/italia.xml",
         "https://www.ilsole24ore.com/rss/mondo.xml",
         "https://www.rainews.it/rss/politica",
@@ -104,26 +106,81 @@ COUNTRY_FEEDS = {
         "https://feeds.bbci.co.uk/news/world/rss.xml?edition=uk",
         "https://feeds.skynews.com/feeds/rss/world.xml",
         "https://feeds.skynews.com/feeds/rss/uk.xml",
-        #"https://www.independent.co.uk/news/world/rss"
     ],
 }
 
+COUNTRY_TZ = {
+    "italy": ZoneInfo("Europe/Rome"),
+    "uk": ZoneInfo("Europe/London"),
+}
 
-# ------------------------
-# 1-bis. FETCH TITLES ONLY FROM TODAY (UTC)
-#   - Keeps duplicates ACROSS sources (so repeated stories boost counts)
-#   - Dedups ONLY within the same feed (RSS often repeats identical items)
-# ------------------------
-def fetch_titles(feeds, tz: ZoneInfo):
+# Anchor everything (filtering + filenames + dashboard) to one day definition
+ANCHOR_TZ = ZoneInfo("Europe/Rome")
+
+
+# ============================================================
+# 1-bis) FETCH + DATE PARSING (robust)
+# ============================================================
+def fetch_feed(url: str):
     """
-    Fetch titles whose *local date in tz* is today (in tz).
-    Keeps duplicates across sources, dedups only within each feed.
+    Fetch RSS with a realistic UA (some feeds block default clients),
+    then parse with feedparser.
     """
-    today_local = datetime.now(tz).date()
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0 Safari/537.36"
+        )
+    }
+    try:
+        r = requests.get(url, headers=headers, timeout=20)
+        r.raise_for_status()
+        return feedparser.parse(r.content)
+    except Exception as e:
+        print(f"[WARN] requests fetch failed for {url}: {e}. Falling back to feedparser.parse(url).")
+        return feedparser.parse(url)
+
+
+def parse_entry_datetime(entry, fallback_tz: ZoneInfo):
+    """
+    Robust parsing:
+    - Prefer entry.published / entry.updated strings via dateutil (keeps timezone if present)
+    - Else fallback to published_parsed/updated_parsed (tz often missing); assume fallback_tz
+    Returns timezone-aware datetime or None.
+    """
+    for k in ("published", "updated"):
+        s = entry.get(k)
+        if s:
+            try:
+                dt = dtparser.parse(s)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=fallback_tz)
+                return dt
+            except Exception:
+                pass
+
+    dt_struct = entry.get("published_parsed") or entry.get("updated_parsed")
+    if dt_struct:
+        try:
+            naive = datetime(*dt_struct[:6])
+            return naive.replace(tzinfo=fallback_tz)
+        except Exception:
+            return None
+
+    return None
+
+
+def fetch_titles(feeds, feed_tz: ZoneInfo, anchor_tz: ZoneInfo):
+    """
+    Fetch titles whose date == "today" in anchor_tz.
+    Dedup only within each feed, keep duplicates across different feeds.
+    """
+    today_anchor = datetime.now(anchor_tz).date()
     titles: list[str] = []
 
     for url in feeds:
-        feed = feedparser.parse(url)
+        feed = fetch_feed(url)
 
         if getattr(feed, "bozo", 0):
             ex = getattr(feed, "bozo_exception", None)
@@ -136,18 +193,15 @@ def fetch_titles(feeds, tz: ZoneInfo):
             if not title:
                 continue
 
-            dt_struct = entry.get("published_parsed") or entry.get("updated_parsed")
-            if not dt_struct:
+            dt = parse_entry_datetime(entry, fallback_tz=feed_tz)
+            if not dt:
                 continue
 
-            # published time → UTC → local tz for comparison
-            dt_utc = datetime.fromtimestamp(calendar.timegm(dt_struct), tz=timezone.utc)
-            dt_local = dt_utc.astimezone(tz)
+            dt_anchor = dt.astimezone(anchor_tz)
+            if dt_anchor.date() == today_anchor:
+                items.append((dt_anchor, title))
 
-            if dt_local.date() == today_local:
-                items.append((dt_local, title))
-
-        # --- Dedup within this feed only ---
+        # Dedup within this feed only
         seen = set()
         deduped: list[tuple[datetime, str]] = []
         for dt, title in items:
@@ -158,19 +212,18 @@ def fetch_titles(feeds, tz: ZoneInfo):
             deduped.append((dt, title))
         items = deduped
 
-        # --- Add to global list (KEEP duplicates across different feeds) ---
-        for dt, title in items:
+        # Keep duplicates across different feeds
+        for _, title in items:
             titles.append(title)
 
     return titles
 
 
-
-# ------------------------
-# 2. STOPWORDS CUSTOM
-# ------------------------
+# ============================================================
+# 2) STOPWORDS CUSTOM
+# ============================================================
 COMMON_STOPWORDS = {
-    # Italiani generici
+    # Italian generici
     "oggi", "ieri", "due", "tre", "solo", "ancora",
     "dopo", "prima", "contro", "secondo",
     "di", "per", "del", "della", "delle", "degli", "dei",
@@ -180,11 +233,25 @@ COMMON_STOPWORDS = {
     "poi", "senza", "mai", "anni",
     "nuova", "tutto", "cosa", "casa", "nuovo", "nuova", "nuove", "nuovi", "ora",
     "repubblica", "ansa", "rai", "rainews", "notizie", "italia", "italiani",
-    # Inglesi generici
+
+    # Italian possessives (avoid "vostro figlio" -> keep just "figlio")
+    "mio", "mia", "miei", "mie",
+    "tuo", "tua", "tuoi", "tue",
+    "suo", "sua", "suoi", "sue",
+    "nostro", "nostra", "nostri", "nostre",
+    "vostro", "vostra", "vostri", "vostre",
+    "loro",
+
+    # English determiners/possessives (avoid "the American Administration")
+    "the", "a", "an", "this", "that", "these", "those",
+    "my", "your", "his", "her", "its", "our", "their",
+
+    # English generici
     "today", "yesterday", "two", "three", "only", "again",
     "after", "before", "against", "according",
     "new",
-    # Rumore generico
+
+    # Rumore
     "img", "https", "con", "alt", "video", "foto", "corriere", "images2",
 }
 
@@ -210,7 +277,7 @@ EXTRA_STOPWORDS_NEWS_UK = {
     "behind", "front", "back", "ahead", "close", "near", "nearby",
     "across", "along", "around", "inside", "outside", "under", "over",
     "through", "between", "beyond", "beneath", "beside", "below", "above",
-    "up", "down",
+    "up", "down","british",
     "start", "starts", "started", "finish", "finishes", "ending", "ends",
     "continue", "continues", "continued", "complete", "completed",
     "move", "moves", "moving", "go", "goes", "going", "gone",
@@ -223,7 +290,7 @@ EXTRA_STOPWORDS_NEWS_UK = {
     "show", "shows", "showed", "seen", "view", "views", "viewed",
     "person", "people", "individual", "group", "groups", "team", "teams",
     "member", "members", "official", "officials", "staff", "worker",
-    "workers", "crowd", "fans","as",
+    "workers", "crowd", "fans", "as",
     "lot", "lots", "amount", "amounts", "number", "numbers",
     "figure", "figures", "percent", "percentage", "percentages",
     "portion", "portions",
@@ -246,7 +313,7 @@ EXTRA_STOPWORDS_NEWS_UK = {
     "otherwise",
     "make", "makes", "made", "doing", "do", "does", "done", "take",
     "takes", "took", "give", "gives", "gave", "work", "works", "worked",
-    "end", "world", "home", "still", "first", "man", "woman"
+    "end", "world", "home", "still", "first", "man", "woman",
 }
 
 STOPWORDS_BY_COUNTRY = {
@@ -255,17 +322,11 @@ STOPWORDS_BY_COUNTRY = {
 }
 
 
-# ------------------------
-# 3. TOKEN PAIRS (key lower, display casing preserved)
-# ------------------------
+# ============================================================
+# 3) TOKEN + TOPIC (PHRASE) EXTRACTION
+# ============================================================
 def tokenize_term_pairs(text, stopwords_set, nlp=None, only_nouns_propn=True):
-    """
-    Returns list of pairs: (key, display)
-      - key: normalized for counting (lowercase lemma/token)
-      - display: surface form (preserves capitalization)
-    """
     out = []
-
     if nlp is not None:
         doc = nlp(text)
         allowed_pos = {"NOUN", "PROPN"} if only_nouns_propn else {"NOUN", "PROPN", "ADJ"}
@@ -289,11 +350,10 @@ def tokenize_term_pairs(text, stopwords_set, nlp=None, only_nouns_propn=True):
             if key in stopwords_set:
                 continue
 
-            display = surface if surface else lemma
-            out.append((key, display))
+            out.append((key, surface if surface else lemma))
         return out
 
-    # fallback regex: keep original casing as display
+    # fallback regex
     tokens_raw = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", text)
     for w in tokens_raw:
         key = w.lower()
@@ -305,55 +365,276 @@ def tokenize_term_pairs(text, stopwords_set, nlp=None, only_nouns_propn=True):
     return out
 
 
-def extract_entity_pairs(text, nlp, stopwords_set, allowed_labels=None):
+def _clean_phrase(s: str) -> str:
+    s = re.sub(r"\s+", " ", s).strip()
+    s = re.sub(r"^[\"'’\(\[\{]+|[\"'’\)\]\}]+$", "", s).strip()
+    return s
+
+
+def _words_alpha(s: str):
+    return re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", s)
+
+
+def _is_stopword_phrase(phrase_key: str, stopwords_set: set[str]) -> bool:
+    parts = _words_alpha(phrase_key.lower())
+    return bool(parts) and all(p in stopwords_set for p in parts)
+
+
+def _phrase_key_from_surface(surface: str) -> str:
+    s = surface.lower()
+    s = re.sub(r"['’]", "", s)
+    s = re.sub(r"[^a-z0-9à-öø-ÿ\s]", " ", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+# --- EN: strip leading determiners/possessives + hedge prefixes ---
+EN_LEADING_WORDS = [
+    "the", "a", "an",
+    "this", "that", "these", "those",
+    "my", "your", "his", "her", "its", "our", "their",
+]
+
+EN_HEDGE_PREFIXES = [
+    "alleged", "reportedly", "suspected", "possible", "potential",
+    "apparent", "so called", "so-called",
+]
+
+_EN_LEADING_RE = re.compile(
+    r"^(?:(?:%s)\s+)+" % "|".join(re.escape(w) for w in EN_LEADING_WORDS),
+    flags=re.IGNORECASE
+)
+_EN_HEDGE_RE = re.compile(
+    r"^(?:(?:%s)\s+)+" % "|".join(re.escape(w) for w in sorted(EN_HEDGE_PREFIXES, key=len, reverse=True)),
+    flags=re.IGNORECASE
+)
+
+
+def strip_en_leading_function_words(phrase: str) -> str:
+    s = phrase.strip()
+    s = _EN_HEDGE_RE.sub("", s).strip()
+    s = _EN_LEADING_RE.sub("", s).strip()
+    return s
+
+
+# --- IT: strip leading articles/preps + possessives ---
+ITALIAN_LEADING_CLITICS = [
+    "l'", "l’", "un'", "un’",
+    "il", "lo", "la", "i", "gli", "le",
+    "un", "uno", "una",
+    "del", "dello", "della", "dei", "degli", "delle",
+    "al", "allo", "alla", "ai", "agli", "alle",
+    "nel", "nello", "nella", "nei", "negli", "nelle",
+    "sul", "sullo", "sulla", "sui", "sugli", "sulle",
+    "col", "coi",
+    "da", "di", "a", "in", "su", "con", "per", "tra", "fra",
+]
+
+ITALIAN_POSSESSIVES = [
+    "mio", "mia", "miei", "mie",
+    "tuo", "tua", "tuoi", "tue",
+    "suo", "sua", "suoi", "sue",
+    "nostro", "nostra", "nostri", "nostre",
+    "vostro", "vostra", "vostri", "vostre",
+    "loro",
+]
+
+_IT_LEADING_RE = re.compile(
+    r"^(?:(?:%s)\s+)+" % "|".join(re.escape(x.replace("’", "'")) for x in ITALIAN_LEADING_CLITICS),
+    flags=re.IGNORECASE
+)
+_IT_LEADING_APOS_RE = re.compile(r"^(?:l['’]|un['’])", flags=re.IGNORECASE)
+_IT_POSSESSIVE_RE = re.compile(
+    r"^(?:(?:%s)\s+)+" % "|".join(re.escape(x) for x in ITALIAN_POSSESSIVES),
+    flags=re.IGNORECASE
+)
+
+
+def strip_it_leading_function_words(phrase: str) -> str:
+    s = phrase.strip()
+    s = s.replace("’", "'")
+    s = _IT_LEADING_APOS_RE.sub("", s).strip()
+    s = _IT_LEADING_RE.sub("", s).strip()
+    s = _IT_POSSESSIVE_RE.sub("", s).strip()
+    return s
+
+
+# ============================================================
+# 3-bis) NEW: phrase quality scoring helpers
+# ============================================================
+def phrase_tokens_info(span, stopwords_set: set[str]):
     """
-    Extract multi-word spaCy entities, return (key_lower, display).
+    For a spaCy Span (noun chunk):
+      - words: list of lowercase alpha tokens (loosely filtered)
+      - content_words: words not in stopwords_set and len>=3
+      - has_propn: True if any token in span is PROPN
     """
-    if nlp is None:
-        return []
+    words = []
+    content_words = []
+    has_propn = False
 
-    if allowed_labels is None:
-        allowed_labels = {"PERSON", "ORG", "GPE", "LOC", "NORP"}
-
-    doc = nlp(text)
-    out = []
-
-    for ent in doc.ents:
-        if ent.label_ not in allowed_labels:
+    for t in span:
+        if t.is_space or t.is_punct:
+            continue
+        if not t.text:
             continue
 
-        disp = re.sub(r"\s+", " ", ent.text.strip())
+        w = t.text.lower()
+        if not re.search(r"[a-zà-öø-ÿ]", w, flags=re.IGNORECASE):
+            continue
+
+        w = w.replace("’", "'")
+        w = re.sub(r"^[\"'’\(\[\{]+|[\"'’\)\]\}]+$", "", w).strip()
+        if not w:
+            continue
+
+        words.append(w)
+        if t.pos_ == "PROPN":
+            has_propn = True
+        if len(w) >= 3 and w not in stopwords_set:
+            content_words.append(w)
+
+    return words, content_words, has_propn
+
+
+def chunk_overlaps_entity(chunk, doc, allowed_ent_labels: set[str]) -> bool:
+    """Keep chunk if it overlaps an allowed entity span."""
+    for ent in doc.ents:
+        if ent.label_ in allowed_ent_labels and chunk.start < ent.end and ent.start < chunk.end:
+            return True
+    return False
+
+
+def extract_phrase_pairs_from_doc(
+    doc,
+    stopwords_set,
+    allowed_ent_labels=None,
+    use_noun_chunks=True,
+    lang="en",
+    max_chunk_words_by_lang=None,
+):
+    """
+    Extract phrase pairs (key, display):
+      - entities (PERSON/ORG/GPE/LOC/NORP by default)
+      - noun chunks filtered with a lightweight quality scoring:
+          keep if (has PROPN OR overlaps an entity) OR (>=2 content words)
+          and word length between 2..max_words
+    """
+    if allowed_ent_labels is None:
+        allowed_ent_labels = {"PERSON", "ORG", "GPE", "LOC", "NORP"}
+
+    if max_chunk_words_by_lang is None:
+        # sensible defaults: allow slightly longer chunks in Italian
+        max_chunk_words_by_lang = {"en": 6, "it": 7}
+
+    max_words = max_chunk_words_by_lang.get(lang, 6)
+
+    out = []
+
+    def clean_disp(disp: str) -> str:
+        disp = _clean_phrase(disp)
+        if lang == "it":
+            disp = strip_it_leading_function_words(disp)
+        else:
+            disp = strip_en_leading_function_words(disp)
+        disp = _clean_phrase(disp)
+        return disp
+
+    # Entities
+    for ent in doc.ents:
+        if ent.label_ not in allowed_ent_labels:
+            continue
+
+        disp = clean_disp(ent.text)
         if len(disp) < 3:
             continue
 
-        key = disp.lower()
-
-        parts = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", key)
-        if parts and all(p in stopwords_set for p in parts):
+        key = _phrase_key_from_surface(disp)
+        if len(key) < 3:
+            continue
+        if _is_stopword_phrase(key, stopwords_set):
             continue
 
         out.append((key, disp))
 
+    # Noun chunks (phrases) with scoring
+    if use_noun_chunks and hasattr(doc, "noun_chunks"):
+        for chunk in doc.noun_chunks:
+            disp = clean_disp(chunk.text)
+
+            if " " not in disp:
+                continue
+            if len(disp) < 5:
+                continue
+
+            key = _phrase_key_from_surface(disp)
+            if len(key) < 5 or " " not in key:
+                continue
+            if _is_stopword_phrase(key, stopwords_set):
+                continue
+
+            words, content_words, has_propn = phrase_tokens_info(chunk, stopwords_set)
+            n_words = len(words)
+
+            if n_words < 2 or n_words > max_words:
+                continue
+
+            overlaps_ent = chunk_overlaps_entity(chunk, doc, allowed_ent_labels)
+
+            # Keep chunk if it looks "topic-like"
+            if not (has_propn or overlaps_ent):
+                if len(content_words) < 2:
+                    continue
+
+            out.append((key, disp))
+
     return out
 
 
-# ------------------------
-# 4. DOCUMENT FREQUENCY COUNTS (UNIGRAMS + BIGRAMS) per titolo
-#   - DF = number of titles containing the term (duplicates across sources count)
-# ------------------------
-def get_document_frequency_counts(
+# ============================================================
+# 4) COUNTING (DF) + TOPICS
+# ============================================================
+def get_document_frequency_counts_topics(
     titles: list[str],
     stopwords_set,
     nlp=None,
     only_nouns_propn=True,
-    include_bigrams=True,
-    min_bigram_freq=2,
+    include_phrases=True,
+    phrase_min_df=2,
+    suppress_unigrams_in_phrases=True,
+    lang="en",
+    global_suppress_unigrams_inside_phrases=True,
 ):
-    df_uni = Counter()                    # key -> DF
-    df_bi = Counter()                     # "k1 k2" -> DF
-    display_votes = defaultdict(Counter)  # key -> Counter(display)
+    """
+    DF = number of titles containing the term/topic.
+    - Unigrams from tokenize_term_pairs (lemmas)
+    - Topics (multiword) from entities + noun chunks (with EN/IT leading-word stripping)
+    - Optional suppression (per-title): remove unigram keys inside any phrase words in that title
+    - Global suppression: after counting, drop unigrams that appear inside any kept phrase
+      (prevents "Nazi" and "Symbols" if "Nazi Symbols" exists).
+    """
+    df_uni = Counter()
+    df_phrase = Counter()
+    display_votes = defaultdict(Counter)
 
-    for title in titles:
+    if nlp is None:
+        # fallback: unigrams only
+        for title in titles:
+            token_pairs = tokenize_term_pairs(title, stopwords_set, nlp=None, only_nouns_propn=only_nouns_propn)
+            keys_in_title = set()
+            for k, disp in token_pairs:
+                display_votes[k][disp] += 1
+                keys_in_title.add(k)
+            for k in keys_in_title:
+                df_uni[k] += 1
+
+        display_map = {k: c.most_common(1)[0][0] for k, c in display_votes.items()}
+        final_counts = dict(df_uni)
+        return final_counts, display_map
+
+    docs = list(nlp.pipe(titles))
+
+    for title, doc in zip(titles, docs):
         token_pairs = tokenize_term_pairs(
             title,
             stopwords_set=stopwords_set,
@@ -361,49 +642,64 @@ def get_document_frequency_counts(
             only_nouns_propn=only_nouns_propn,
         ) or []
 
-        entity_pairs = extract_entity_pairs(title, nlp=nlp, stopwords_set=stopwords_set) or []
+        phrase_pairs = []
+        if include_phrases:
+            phrase_pairs = extract_phrase_pairs_from_doc(
+                doc,
+                stopwords_set=stopwords_set,
+                lang=lang,
+                use_noun_chunks=True,
+                # tweak if you want different caps:
+                max_chunk_words_by_lang={"en": 6, "it": 7},
+            ) or []
 
-        # display votes
         for k, disp in token_pairs:
             if disp:
                 display_votes[k][disp] += 1
-        for k, disp in entity_pairs:
+        for k, disp in phrase_pairs:
             if disp:
                 display_votes[k][disp] += 1
 
-        # unigram DF: once per title
-        keys_in_title = {k for k, _ in token_pairs}
-        keys_in_title.update(k for k, _ in entity_pairs)
-        for k in keys_in_title:
-            df_uni[k] += 1
+        unigram_keys = {k for k, _ in token_pairs}
+        phrase_keys = {k for k, _ in phrase_pairs}
 
-        # bigram DF: adjacent tokens in title (once per title)
-        if include_bigrams and len(token_pairs) >= 2:
-            seen_bigrams = set()
-            for (k1, _), (k2, _) in zip(token_pairs, token_pairs[1:]):
-                if (k1 in stopwords_set) or (k2 in stopwords_set):
-                    continue
-                seen_bigrams.add((k1, k2))
-            for k1, k2 in seen_bigrams:
-                df_bi[f"{k1} {k2}"] += 1
+        for pk in phrase_keys:
+            df_phrase[pk] += 1
 
-    if min_bigram_freq and min_bigram_freq > 1:
-        df_bi = Counter({k: v for k, v in df_bi.items() if v >= min_bigram_freq})
+        if suppress_unigrams_in_phrases and phrase_keys:
+            phrase_words = set()
+            for pk in phrase_keys:
+                phrase_words.update(pk.split())
+            unigram_keys = {k for k in unigram_keys if k not in phrase_words}
 
-    # choose canonical display for each unigram key
+        for uk in unigram_keys:
+            df_uni[uk] += 1
+
+    if phrase_min_df and phrase_min_df > 1:
+        df_phrase = Counter({k: v for k, v in df_phrase.items() if v >= phrase_min_df})
+
+    # Global suppression of unigrams that are inside any kept phrase
+    if global_suppress_unigrams_inside_phrases and df_phrase:
+        phrase_words_global = set()
+        for pk in df_phrase.keys():
+            phrase_words_global.update(pk.split())
+        for w in list(df_uni.keys()):
+            if w in phrase_words_global:
+                del df_uni[w]
+
     display_map = {}
     for k, c in display_votes.items():
         best = sorted(c.items(), key=lambda x: (-x[1], -len(x[0]), x[0]))[0][0]
         display_map[k] = best
 
     final_counts = dict(df_uni)
-    final_counts.update(df_bi)
+    final_counts.update(df_phrase)
     return final_counts, display_map
 
 
-# ------------------------
-# 5. WORDCLOUD (from term counts)
-# ------------------------
+# ============================================================
+# 5) WORDCLOUD
+# ============================================================
 def make_wordcloud_from_term_counts(term_counts, save_path=None):
     wc = WordCloud(
         width=1600,
@@ -428,9 +724,9 @@ def make_wordcloud_from_term_counts(term_counts, save_path=None):
     plt.close()
 
 
-# ------------------------
-# 6. FILE SYSTEM
-# ------------------------
+# ============================================================
+# 6) FILE SYSTEM
+# ============================================================
 try:
     BASE_DIR = Path(__file__).resolve().parent
 except NameError:
@@ -449,13 +745,12 @@ def save_counts_for_day(day: date, country: str, counts: dict):
     fullpath = os.path.abspath(filename)
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(counts, f, ensure_ascii=False, indent=2)
-    print(f"\n[INFO] Saved term counts for {country} to {fullpath}")
+    print(f"\n[INFO] Saved term/topic counts for {country} to {fullpath}")
 
 
 def load_counts_for_day(day: date, country: str):
     filename = get_counts_filename(day, country)
     if not os.path.exists(filename):
-        print(f"[INFO] No data for {day.isoformat()} ({country}) ({filename} not found)")
         return None
     with open(filename, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -465,9 +760,9 @@ def get_wordcloud_filename_for_day(day: date, country: str) -> Path:
     return DATA_DIR / f"{day.isoformat()}_{country}_wordcloud.png"
 
 
-# ------------------------
-# 7. TABLES: NEW / RISING / FALLING
-# ------------------------
+# ============================================================
+# 7) TABLES: NEW / RISING / FALLING
+# ============================================================
 def get_new_words_table(today_counts: dict, yesterday_counts: dict, top_n=10):
     new_terms = set(today_counts.keys()) - set(yesterday_counts.keys())
     rows = [{"Term": t, "Current day frequency": today_counts[t]} for t in new_terms]
@@ -516,23 +811,28 @@ def compare_days(today_counts: dict, yesterday_counts: dict, top_n=10):
 
 
 def get_top_terms_table(counts: dict, top_n=10, kind="all"):
+    """
+    kind:
+      - 'unigram': single tokens (no space)
+      - 'phrase': multiword topics (has space)
+      - 'all'
+    """
     if not counts:
         return pd.DataFrame(columns=["Term", "Frequency"])
 
     items = counts.items()
     if kind == "unigram":
         items = [(t, f) for t, f in items if " " not in t]
-    elif kind == "bigram":
+    elif kind == "phrase":
         items = [(t, f) for t, f in items if " " in t]
 
     rows = [{"Term": t, "Frequency": f} for t, f in Counter(dict(items)).most_common(top_n)]
     return pd.DataFrame(rows)
 
 
-# ------------------------
-# 8. WEEK VIEW DASHBOARD (index.html)
-#   - Split unigrams and bigrams so "wife" vs "court wife" is clear
-# ------------------------
+# ============================================================
+# 8) WEEK VIEW DASHBOARD (index.html)
+# ============================================================
 def list_available_days(data_dir: Path, country: str):
     suffix = f"_{country}_terms.json"
     days = []
@@ -550,10 +850,11 @@ def build_per_country_results_for_day(day: date, countries: list[str]):
     for country in countries:
         today_counts = load_counts_for_day(day, country)
         if today_counts is None:
+            per_country_results[country] = None
             continue
 
         top_uni_df = get_top_terms_table(today_counts, top_n=10, kind="unigram")
-        top_bi_df = get_top_terms_table(today_counts, top_n=10, kind="bigram")
+        top_phrase_df = get_top_terms_table(today_counts, top_n=10, kind="phrase")
 
         prev_counts = load_counts_for_day(day - timedelta(days=1), country)
         new_df = rising_df = falling_df = None
@@ -565,7 +866,7 @@ def build_per_country_results_for_day(day: date, countries: list[str]):
 
         per_country_results[country] = {
             "top_uni_df": top_uni_df,
-            "top_bi_df": top_bi_df,
+            "top_phrase_df": top_phrase_df,
             "new_df": new_df,
             "rising_df": rising_df,
             "falling_df": falling_df,
@@ -584,8 +885,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
         print("[WARN] No saved days found in data/. Cannot build dashboard.")
         return
 
-    generated_str = datetime.now(ZoneInfo("Europe/Rome")).strftime("%d %b %Y, %H:%M %Z")
-
+    generated_str = datetime.now(ANCHOR_TZ).strftime("%d %b %Y, %H:%M %Z")
 
     def df_or_message(df, msg):
         if df is None or df.empty:
@@ -612,11 +912,28 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     panels_html = []
     for d in days:
         per_country = build_per_country_results_for_day(d, countries)
-        for country, data in per_country.items():
+        for country in countries:
+            data = per_country.get(country)
             flag = "🇮🇹" if country == "italy" else ("🇬🇧" if country == "uk" else "🏳️")
 
+            if data is None:
+                panel = f"""
+                <div class="country-dashboard panel" id="panel-{d.isoformat()}-{country}" data-day="{d.isoformat()}" data-country="{country}" style="display:none;">
+                    <div class="header-row">
+                        <h2>{flag} {"UK" if country == "uk" else country.capitalize()} — {d.isoformat()}</h2>
+                        <span class="date-pill">Updated: {generated_str}</span>
+                    </div>
+                    <div class="card">
+                        <h3>No data</h3>
+                        <p class='empty-msg'>No saved data found for this day/country combination.</p>
+                    </div>
+                </div>
+                """
+                panels_html.append(panel)
+                continue
+
             html_top_uni = df_or_message(data["top_uni_df"], "No unigrams found for this day.")
-            html_top_bi = df_or_message(data["top_bi_df"], "No bigrams found for this day.")
+            html_top_phrase = df_or_message(data["top_phrase_df"], "No phrases found for this day.")
             html_new = df_or_message(data["new_df"], "No new terms compared to previous day.")
             html_rising = df_or_message(data["rising_df"], "No significantly increasing terms.")
             html_falling = df_or_message(data["falling_df"], "No significantly decreasing terms.")
@@ -638,8 +955,8 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
                         <h3>Top 10 unigrams</h3>
                         {html_top_uni}
 
-                        <h3>Top 10 bigrams</h3>
-                        {html_top_bi}
+                        <h3>Top 10 phrases (entities + noun chunks, cleaned & filtered)</h3>
+                        {html_top_phrase}
 
                         <h3>Top 10 new terms (vs previous day)</h3>
                         {html_new}
@@ -671,9 +988,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.6);
             --font-mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
         }}
-
         * {{ box-sizing: border-box; }}
-
         body {{
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             margin: 0;
@@ -683,7 +998,6 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             display: flex;
             gap: 24px;
         }}
-
         .sidebar {{
             width: 240px;
             padding: 20px 18px;
@@ -695,19 +1009,16 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             top: 24px;
             height: fit-content;
         }}
-
         .sidebar h2 {{
             color: #edf2f7;
             margin: 0 0 12px;
             font-size: 1.1rem;
         }}
-
         .sidebar p {{
             color: var(--text-muted);
             font-size: 0.85rem;
             margin-bottom: 10px;
         }}
-
         .country-btn {{
             display: block;
             width: 100%;
@@ -722,17 +1033,14 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             font-size: 0.95rem;
             transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
         }}
-
         .country-btn:hover {{
             background: rgba(255, 255, 255, 0.05);
             transform: translateY(-1px);
         }}
-
         .country-btn.active {{
             background: var(--accent-soft);
             border-color: var(--accent);
         }}
-
         .container {{
             flex: 1;
             max-width: 1100px;
@@ -742,28 +1050,9 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             border: 1px solid var(--border-subtle);
             box-shadow: var(--shadow-soft);
         }}
-
-        h1 {{
-            margin: 0 0 6px;
-            font-size: 1.4rem;
-        }}
-
-        .subtitle {{
-            margin: 0 0 4px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }}
-
-        .updated-info {{
-            margin: 0 0 18px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }}
-
-        .country-dashboard {{
-            margin-top: 8px;
-        }}
-
+        h1 {{ margin: 0 0 6px; font-size: 1.4rem; }}
+        .subtitle {{ margin: 0 0 4px; font-size: 0.9rem; color: var(--text-muted); }}
+        .updated-info {{ margin: 0 0 18px; font-size: 0.8rem; color: var(--text-muted); }}
         .header-row {{
             display: flex;
             align-items: center;
@@ -771,12 +1060,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             gap: 12px;
             margin-bottom: 14px;
         }}
-
-        .header-row h2 {{
-            margin: 0;
-            font-size: 1.2rem;
-        }}
-
+        .header-row h2 {{ margin: 0; font-size: 1.2rem; }}
         .date-pill {{
             padding: 4px 10px;
             border-radius: 999px;
@@ -784,15 +1068,8 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             font-size: 0.78rem;
             color: var(--text-muted);
         }}
-
-        .content-grid {{
-            display: block;
-        }}
-
         @media (max-width: 960px) {{
-            body {{
-                flex-direction: column;
-            }}
+            body {{ flex-direction: column; }}
             .sidebar {{
                 position: static;
                 width: 100%;
@@ -801,14 +1078,9 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
                 align-items: center;
                 gap: 8px;
             }}
-            .sidebar h2 {{
-                flex: 1 0 100%;
-            }}
-            .container {{
-                width: 100%;
-            }}
+            .sidebar h2 {{ flex: 1 0 100%; }}
+            .container {{ width: 100%; }}
         }}
-
         .card {{
             background: var(--bg-card);
             border-radius: 14px;
@@ -816,13 +1088,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             padding: 14px 16px;
             margin-bottom: 14px;
         }}
-
-        .card h3 {{
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 1rem;
-        }}
-
+        .card h3 {{ margin-top: 0; margin-bottom: 10px; font-size: 1rem; }}
         .wordcloud {{
             width: 100%;
             height: auto;
@@ -830,22 +1096,9 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             border: 1px solid #2d3748;
             display: block;
         }}
-
-        .tables-card h3 {{
-            margin-top: 12px;
-            font-size: 0.98rem;
-        }}
-
-        .tables-card h3:first-of-type {{
-            margin-top: 0;
-        }}
-
-        .empty-msg {{
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin: 4px 0 12px;
-        }}
-
+        .tables-card h3 {{ margin-top: 12px; font-size: 0.98rem; }}
+        .tables-card h3:first-of-type {{ margin-top: 0; }}
+        .empty-msg {{ font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 12px; }}
         table.data-table {{
             border-collapse: collapse;
             width: 100%;
@@ -853,28 +1106,24 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             margin-bottom: 10px;
             font-size: 0.85rem;
         }}
-
         table.data-table th,
         table.data-table td {{
             border: 1px solid #2d3748;
             padding: 6px 8px;
             text-align: left;
         }}
-
         table.data-table th {{
             background-color: #111827;
             color: #e2e8f0;
             font-weight: 500;
             font-size: 0.82rem;
         }}
-
         table.data-table tr:nth-child(even) {{ background-color: #0b1220; }}
         table.data-table tr:nth-child(odd)  {{ background-color: #050b18; }}
-
         table.data-table td:nth-child(2),
         table.data-table td:nth-child(3),
         table.data-table td:nth-child(4) {{
-            font-family: var(--font-mono);
+            font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
             text-align: right;
         }}
     </style>
@@ -890,7 +1139,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     </div>
     <div class="container">
         <h1>European News Dashboard</h1>
-        <p class="subtitle">Week view</p>
+        <p class="subtitle">Week view (phrases cleaned + noun-chunk quality filter; unigrams suppressed if inside phrases)</p>
         <p class="updated-info">Last update: {generated_str}</p>
         {''.join(panels_html)}
     </div>
@@ -959,28 +1208,21 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     print("[INFO] Saved dashboard to", out_path)
 
 
-
-# ------------------------
-# 9. MAIN (index.html is the week dashboard)
-# ------------------------
+# ============================================================
+# 9) MAIN
+# ============================================================
 if __name__ == "__main__":
-    TZ_ITALY = ZoneInfo("Europe/Rome")
-    TZ_UK = ZoneInfo("Europe/London")
-
-    # Use Rome day for filenames + dashboard range anchor (consistent across countries)
-    today = datetime.now(TZ_ITALY).date()
-
+    today_anchor = datetime.now(ANCHOR_TZ).date()
     print("[DEBUG] Current working directory:", os.getcwd())
+    print("[DEBUG] Anchor day (Europe/Rome):", today_anchor.isoformat())
 
-    MIN_BIGRAM_BY_COUNTRY = {"italy": 2, "uk": 2}
+    MIN_PHRASE_BY_COUNTRY = {"italy": 2, "uk": 2}
 
     for country, feeds in COUNTRY_FEEDS.items():
         print(f"\n=== Processing {country} ===")
 
-        tz = TZ_ITALY if country == "italy" else (TZ_UK if country == "uk" else TZ_ITALY)
-
-        titles = fetch_titles(feeds, tz=tz)
-
+        feed_tz = COUNTRY_TZ.get(country, ANCHOR_TZ)
+        titles = fetch_titles(feeds, feed_tz=feed_tz, anchor_tz=ANCHOR_TZ)
         titles = [t.strip() for t in titles if t and t.strip()]
 
         stopwords_set = STOPWORDS_BY_COUNTRY.get(country, STOP_IT | STOP_EN | COMMON_STOPWORDS)
@@ -988,37 +1230,29 @@ if __name__ == "__main__":
         nlp = nlp_it if country == "italy" else (nlp_en if country == "uk" else None)
 
         only_nouns_propn = (country == "uk")
+        phrase_min_df = MIN_PHRASE_BY_COUNTRY.get(country, 2)
 
-        min_bigram = MIN_BIGRAM_BY_COUNTRY.get(country, 2)
-
-        today_counts, display_map = get_document_frequency_counts(
+        today_counts, display_map = get_document_frequency_counts_topics(
             titles=titles,
             stopwords_set=stopwords_set,
             nlp=nlp,
             only_nouns_propn=only_nouns_propn,
-            include_bigrams=True,
-            min_bigram_freq=min_bigram,
+            include_phrases=True,
+            phrase_min_df=phrase_min_df,
+            suppress_unigrams_in_phrases=True,
+            lang=("it" if country == "italy" else "en"),
+            global_suppress_unigrams_inside_phrases=True,
         )
 
-        save_counts_for_day(today, country, today_counts)
+        save_counts_for_day(today_anchor, country, today_counts)
 
-        counts_for_wc = {}
-        for k, v in today_counts.items():
-            if " " in k:
-                k1, k2 = k.split(" ", 1)
-                d1 = display_map.get(k1, k1)
-                d2 = display_map.get(k2, k2)
-                counts_for_wc[f"{d1} {d2}"] = v
-            else:
-                counts_for_wc[display_map.get(k, k)] = v
-
-        wc_path_today = get_wordcloud_filename_for_day(today, country)
+        counts_for_wc = {display_map.get(k, k): v for k, v in today_counts.items()}
+        wc_path_today = get_wordcloud_filename_for_day(today_anchor, country)
         make_wordcloud_from_term_counts(counts_for_wc, save_path=str(wc_path_today))
 
     save_week_dashboard_html(
-        today,
+        today_anchor,
         countries=list(COUNTRY_FEEDS.keys()),
         days_back=7,
         out_filename="index.html",
     )
-
