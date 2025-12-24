@@ -240,7 +240,7 @@ EXTRA_STOPWORDS_NEWS_UK = {
     "otherwise",
     "make", "makes", "made", "doing", "do", "does", "done", "take",
     "takes", "took", "give", "gives", "gave", "work", "works", "worked",
-    "end", "world", "home", "still", "first", "man", "woman",
+    "end", "world", "home", "still", "first", "man", "woman","british"
 }
 
 STOPWORDS_BY_COUNTRY = {
