@@ -18,14 +18,13 @@ import matplotlib.pyplot as plt
 
 import pandas as pd
 
-# Robust RSS fetching + datetime parsing
+
 import requests
 from dateutil import parser as dtparser
 
 
-# ============================================================
-# 0) NORMALIZE (per-feed dedup)
-# ============================================================
+# NORMALISE
+
 def normalize_title_key(t: str) -> str:
     t = t.lower()
     t = re.sub(r"['’]", "", t)
@@ -34,9 +33,9 @@ def normalize_title_key(t: str) -> str:
     return t
 
 
-# ============================================================
-# 0) STOPWORDS NLTK
-# ============================================================
+
+# STOPWORDS NLTK
+#
 try:
     _ = stopwords.words("italian")
 except LookupError:
@@ -51,9 +50,8 @@ STOP_IT = set(stopwords.words("italian"))
 STOP_EN = set(stopwords.words("english"))
 
 
-# ============================================================
-# 0-bis) SPACY (EN + IT) optional
-# ============================================================
+# SPACY (EN + IT) optional
+#
 try:
     import spacy
 except Exception as e:
@@ -79,9 +77,8 @@ if spacy is not None:
         print("[WARN] spaCy Italian model NOT loaded. Install with: python -m spacy download it_core_news_sm", e)
 
 
-# ============================================================
-# 1) RSS FEEDS PER NAZIONE
-# ============================================================
+
+# RSS FEEDS
 COUNTRY_FEEDS = {
     "italy": [
         "https://www.repubblica.it/rss/homepage/rss2.0.xml",
@@ -114,18 +111,15 @@ COUNTRY_TZ = {
     "uk": ZoneInfo("Europe/London"),
 }
 
-# Anchor everything (filtering + filenames + dashboard) to one day definition
+# Anchor everything to one day
 ANCHOR_TZ = ZoneInfo("Europe/Rome")
 
 
-# ============================================================
-# 1-bis) FETCH + DATE PARSING (robust)
-# ============================================================
+
+# FETCH + DATE PARSING
+
 def fetch_feed(url: str):
-    """
-    Fetch RSS with a realistic UA (some feeds block default clients),
-    then parse with feedparser.
-    """
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (X11; Linux x86_64) "
@@ -143,12 +137,7 @@ def fetch_feed(url: str):
 
 
 def parse_entry_datetime(entry, fallback_tz: ZoneInfo):
-    """
-    Robust parsing:
-    - Prefer entry.published / entry.updated strings via dateutil (keeps timezone if present)
-    - Else fallback to published_parsed/updated_parsed (tz often missing); assume fallback_tz
-    Returns timezone-aware datetime or None.
-    """
+
     for k in ("published", "updated"):
         s = entry.get(k)
         if s:
@@ -172,10 +161,10 @@ def parse_entry_datetime(entry, fallback_tz: ZoneInfo):
 
 
 def fetch_titles(feeds, feed_tz: ZoneInfo, anchor_tz: ZoneInfo):
-    """
-    Fetch titles whose date == "today" in anchor_tz.
-    Dedup only within each feed, keep duplicates across different feeds.
-    """
+
+    #Fetch titles whose date == "today" in anchor_tz.
+    #Dedup only within each feed, keep duplicates across different feeds.
+
     today_anchor = datetime.now(anchor_tz).date()
     titles: list[str] = []
 
@@ -201,7 +190,7 @@ def fetch_titles(feeds, feed_tz: ZoneInfo, anchor_tz: ZoneInfo):
             if dt_anchor.date() == today_anchor:
                 items.append((dt_anchor, title))
 
-        # Dedup within this feed only
+
         seen = set()
         deduped: list[tuple[datetime, str]] = []
         for dt, title in items:
@@ -219,11 +208,10 @@ def fetch_titles(feeds, feed_tz: ZoneInfo, anchor_tz: ZoneInfo):
     return titles
 
 
-# ============================================================
-# 2) STOPWORDS CUSTOM
-# ============================================================
+# STOPWORDS CUSTOM
+
 COMMON_STOPWORDS = {
-    # Italian generici
+    # Italiani generici
     "oggi", "ieri", "due", "tre", "solo", "ancora",
     "dopo", "prima", "contro", "secondo",
     "di", "per", "del", "della", "delle", "degli", "dei",
@@ -234,7 +222,7 @@ COMMON_STOPWORDS = {
     "nuova", "tutto", "cosa", "casa", "nuovo", "nuova", "nuove", "nuovi", "ora",
     "repubblica", "ansa", "rai", "rainews", "notizie", "italia", "italiani",
 
-    # Italian possessives (avoid "vostro figlio" -> keep just "figlio")
+    # Italian possessives
     "mio", "mia", "miei", "mie",
     "tuo", "tua", "tuoi", "tue",
     "suo", "sua", "suoi", "sue",
@@ -242,7 +230,7 @@ COMMON_STOPWORDS = {
     "vostro", "vostra", "vostri", "vostre",
     "loro",
 
-    # English determiners/possessives (avoid "the American Administration")
+    # English determiners/possessives
     "the", "a", "an", "this", "that", "these", "those",
     "my", "your", "his", "her", "its", "our", "their",
 
@@ -322,9 +310,8 @@ STOPWORDS_BY_COUNTRY = {
 }
 
 
-# ============================================================
-# 3) TOKEN + TOPIC (PHRASE) EXTRACTION
-# ============================================================
+#  TOKEN + TOPIC (PHRASE) EXTRACTION
+
 def tokenize_term_pairs(text, stopwords_set, nlp=None, only_nouns_propn=True):
     out = []
     if nlp is not None:
@@ -388,7 +375,7 @@ def _phrase_key_from_surface(surface: str) -> str:
     return s
 
 
-# --- EN: strip leading determiners/possessives + hedge prefixes ---
+#EN: strip leading determiners/possessives
 EN_LEADING_WORDS = [
     "the", "a", "an",
     "this", "that", "these", "those",
@@ -417,7 +404,7 @@ def strip_en_leading_function_words(phrase: str) -> str:
     return s
 
 
-# --- IT: strip leading articles/preps + possessives ---
+#IT: strip leading articles/preps + possessives
 ITALIAN_LEADING_CLITICS = [
     "l'", "l’", "un'", "un’",
     "il", "lo", "la", "i", "gli", "le",
@@ -459,16 +446,14 @@ def strip_it_leading_function_words(phrase: str) -> str:
     return s
 
 
-# ============================================================
-# 3-bis) NEW: phrase quality scoring helpers
-# ============================================================
+# NEW: phrase quality scoring
+
 def phrase_tokens_info(span, stopwords_set: set[str]):
-    """
-    For a spaCy Span (noun chunk):
-      - words: list of lowercase alpha tokens (loosely filtered)
-      - content_words: words not in stopwords_set and len>=3
-      - has_propn: True if any token in span is PROPN
-    """
+    # For a spaCy Span (noun chunk):
+      #- words: list of lowercase alpha tokens (loosely filtered)
+      #- content_words: words not in stopwords_set and len>=3
+      #- has_propn: True if any token in span is PROPN
+
     words = []
     content_words = []
     has_propn = False
@@ -498,7 +483,7 @@ def phrase_tokens_info(span, stopwords_set: set[str]):
 
 
 def chunk_overlaps_entity(chunk, doc, allowed_ent_labels: set[str]) -> bool:
-    """Keep chunk if it overlaps an allowed entity span."""
+
     for ent in doc.ents:
         if ent.label_ in allowed_ent_labels and chunk.start < ent.end and ent.start < chunk.end:
             return True
@@ -513,19 +498,13 @@ def extract_phrase_pairs_from_doc(
     lang="en",
     max_chunk_words_by_lang=None,
 ):
-    """
-    Extract phrase pairs (key, display):
-      - entities (PERSON/ORG/GPE/LOC/NORP by default)
-      - noun chunks filtered with a lightweight quality scoring:
-          keep if (has PROPN OR overlaps an entity) OR (>=2 content words)
-          and word length between 2..max_words
-    """
+
     if allowed_ent_labels is None:
         allowed_ent_labels = {"PERSON", "ORG", "GPE", "LOC", "NORP"}
 
     if max_chunk_words_by_lang is None:
-        # sensible defaults: allow slightly longer chunks in Italian
-        max_chunk_words_by_lang = {"en": 6, "it": 7}
+
+        max_chunk_words_by_lang = {"en": 6, "it": 6}
 
     max_words = max_chunk_words_by_lang.get(lang, 6)
 
@@ -540,7 +519,7 @@ def extract_phrase_pairs_from_doc(
         disp = _clean_phrase(disp)
         return disp
 
-    # Entities
+
     for ent in doc.ents:
         if ent.label_ not in allowed_ent_labels:
             continue
@@ -557,7 +536,7 @@ def extract_phrase_pairs_from_doc(
 
         out.append((key, disp))
 
-    # Noun chunks (phrases) with scoring
+
     if use_noun_chunks and hasattr(doc, "noun_chunks"):
         for chunk in doc.noun_chunks:
             disp = clean_disp(chunk.text)
@@ -581,7 +560,7 @@ def extract_phrase_pairs_from_doc(
 
             overlaps_ent = chunk_overlaps_entity(chunk, doc, allowed_ent_labels)
 
-            # Keep chunk if it looks "topic-like"
+
             if not (has_propn or overlaps_ent):
                 if len(content_words) < 2:
                     continue
@@ -591,9 +570,8 @@ def extract_phrase_pairs_from_doc(
     return out
 
 
-# ============================================================
-# 4) COUNTING (DF) + TOPICS
-# ============================================================
+# COUNTING (DF) + TOPICS
+
 def get_document_frequency_counts_topics(
     titles: list[str],
     stopwords_set,
@@ -605,20 +583,13 @@ def get_document_frequency_counts_topics(
     lang="en",
     global_suppress_unigrams_inside_phrases=True,
 ):
-    """
-    DF = number of titles containing the term/topic.
-    - Unigrams from tokenize_term_pairs (lemmas)
-    - Topics (multiword) from entities + noun chunks (with EN/IT leading-word stripping)
-    - Optional suppression (per-title): remove unigram keys inside any phrase words in that title
-    - Global suppression: after counting, drop unigrams that appear inside any kept phrase
-      (prevents "Nazi" and "Symbols" if "Nazi Symbols" exists).
-    """
+
     df_uni = Counter()
     df_phrase = Counter()
     display_votes = defaultdict(Counter)
 
     if nlp is None:
-        # fallback: unigrams only
+
         for title in titles:
             token_pairs = tokenize_term_pairs(title, stopwords_set, nlp=None, only_nouns_propn=only_nouns_propn)
             keys_in_title = set()
@@ -697,9 +668,8 @@ def get_document_frequency_counts_topics(
     return final_counts, display_map
 
 
-# ============================================================
-# 5) WORDCLOUD
-# ============================================================
+#  WORDCLOUD
+
 def make_wordcloud_from_term_counts(term_counts, save_path=None):
     wc = WordCloud(
         width=1600,
@@ -724,9 +694,8 @@ def make_wordcloud_from_term_counts(term_counts, save_path=None):
     plt.close()
 
 
-# ============================================================
-# 6) FILE SYSTEM
-# ============================================================
+# FILE SYSTEM
+
 try:
     BASE_DIR = Path(__file__).resolve().parent
 except NameError:
@@ -760,9 +729,8 @@ def get_wordcloud_filename_for_day(day: date, country: str) -> Path:
     return DATA_DIR / f"{day.isoformat()}_{country}_wordcloud.png"
 
 
-# ============================================================
-# 7) TABLES: NEW / RISING / FALLING
-# ============================================================
+#  TABLES: NEW / RISING / FALLING
+
 def get_new_words_table(today_counts: dict, yesterday_counts: dict, top_n=10):
     new_terms = set(today_counts.keys()) - set(yesterday_counts.keys())
     rows = [{"Term": t, "Current day frequency": today_counts[t]} for t in new_terms]
@@ -830,9 +798,8 @@ def get_top_terms_table(counts: dict, top_n=10, kind="all"):
     return pd.DataFrame(rows)
 
 
-# ============================================================
-# 8) WEEK VIEW DASHBOARD (index.html)
-# ============================================================
+#  WEEK VIEW DASHBOARD (index.html)
+
 def list_available_days(data_dir: Path, country: str):
     suffix = f"_{country}_terms.json"
     days = []
@@ -1208,9 +1175,8 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     print("[INFO] Saved dashboard to", out_path)
 
 
-# ============================================================
-# 9) MAIN
-# ============================================================
+#  MAIN
+
 if __name__ == "__main__":
     today_anchor = datetime.now(ANCHOR_TZ).date()
     print("[DEBUG] Current working directory:", os.getcwd())
