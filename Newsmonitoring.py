@@ -5,6 +5,7 @@ import time
 from datetime import date, timedelta, datetime, timezone
 from collections import Counter, defaultdict
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import feedparser
 import nltk
@@ -113,12 +114,15 @@ COUNTRY_FEEDS = {
 #   - Keeps duplicates ACROSS sources (so repeated stories boost counts)
 #   - Dedups ONLY within the same feed (RSS often repeats identical items)
 # ------------------------
-def fetch_titles(feeds):
-    today_date = datetime.now(timezone.utc).date()
+def fetch_titles(feeds, tz: ZoneInfo):
+    """
+    Fetch titles whose *local date in tz* is today (in tz).
+    Keeps duplicates across sources, dedups only within each feed.
+    """
+    today_local = datetime.now(tz).date()
     titles: list[str] = []
 
     for url in feeds:
-        #print("[RSS]", url)
         feed = feedparser.parse(url)
 
         if getattr(feed, "bozo", 0):
@@ -136,9 +140,12 @@ def fetch_titles(feeds):
             if not dt_struct:
                 continue
 
-            dt = datetime.fromtimestamp(calendar.timegm(dt_struct), tz=timezone.utc)
-            if dt.date() == today_date:
-                items.append((dt, title))
+            # published time → UTC → local tz for comparison
+            dt_utc = datetime.fromtimestamp(calendar.timegm(dt_struct), tz=timezone.utc)
+            dt_local = dt_utc.astimezone(tz)
+
+            if dt_local.date() == today_local:
+                items.append((dt_local, title))
 
         # --- Dedup within this feed only ---
         seen = set()
@@ -151,13 +158,12 @@ def fetch_titles(feeds):
             deduped.append((dt, title))
         items = deduped
 
-        # --- Print + add to global list (KEEP duplicates across different feeds) ---
+        # --- Add to global list (KEEP duplicates across different feeds) ---
         for dt, title in items:
-            #print(dt, title)
             titles.append(title)
 
-    #print("______________________________")
     return titles
+
 
 
 # ------------------------
@@ -578,7 +584,8 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
         print("[WARN] No saved days found in data/. Cannot build dashboard.")
         return
 
-    generated_str = datetime.now().strftime("%d %b %Y, %H:%M")
+    generated_str = datetime.now(ZoneInfo("Europe/Rome")).strftime("%d %b %Y, %H:%M %Z")
+
 
     def df_or_message(df, msg):
         if df is None or df.empty:
@@ -957,7 +964,12 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
 # 9. MAIN (index.html is the week dashboard)
 # ------------------------
 if __name__ == "__main__":
-    today = datetime.now(timezone.utc).date()
+    TZ_ITALY = ZoneInfo("Europe/Rome")
+    TZ_UK = ZoneInfo("Europe/London")
+
+    # Use Rome day for filenames + dashboard range anchor (consistent across countries)
+    today = datetime.now(TZ_ITALY).date()
+
     print("[DEBUG] Current working directory:", os.getcwd())
 
     MIN_BIGRAM_BY_COUNTRY = {"italy": 2, "uk": 2}
@@ -965,17 +977,16 @@ if __name__ == "__main__":
     for country, feeds in COUNTRY_FEEDS.items():
         print(f"\n=== Processing {country} ===")
 
-        titles = fetch_titles(feeds)
+        tz = TZ_ITALY if country == "italy" else (TZ_UK if country == "uk" else TZ_ITALY)
 
-        # IMPORTANT: do NOT globally dedup titles!
-        # Keep duplicates across sources so repeated stories boost term DF.
+        titles = fetch_titles(feeds, tz=tz)
+
         titles = [t.strip() for t in titles if t and t.strip()]
 
         stopwords_set = STOPWORDS_BY_COUNTRY.get(country, STOP_IT | STOP_EN | COMMON_STOPWORDS)
 
         nlp = nlp_it if country == "italy" else (nlp_en if country == "uk" else None)
 
-        # UK: nouns+propn only; IT: nouns+propn+adj (as you had)
         only_nouns_propn = (country == "uk")
 
         min_bigram = MIN_BIGRAM_BY_COUNTRY.get(country, 2)
@@ -991,7 +1002,6 @@ if __name__ == "__main__":
 
         save_counts_for_day(today, country, today_counts)
 
-        # wordcloud labels: use display_map for unigrams, keep bigrams readable
         counts_for_wc = {}
         for k, v in today_counts.items():
             if " " in k:
@@ -1011,3 +1021,4 @@ if __name__ == "__main__":
         days_back=7,
         out_filename="index.html",
     )
+
