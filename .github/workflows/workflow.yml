@@ -1,9 +1,14 @@
 name: Update News Dashboard
+
 permissions:
   contents: write
+
 on:
   schedule:
-    - cron: "0 9 * * *"
+    # GitHub Actions cron is UTC.
+    # 09:00 Europe/Rome is 08:00 UTC in winter, 07:00 UTC in summer.
+    # If you want stable "Rome times", consider adjusting seasonally or run more often.
+    - cron: "0 8 * * *"
     - cron: "0 14 * * *"
     - cron: "0 21 * * *"
   workflow_dispatch:
@@ -11,30 +16,41 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Rome
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
       - name: Download NLTK data
-        run: | 
+        run: |
           python -m nltk.downloader stopwords
 
-      - name: Run NewsMonitor
-        run: python Newsmonitoring.py
+      - name: Download spaCy models
+        run: |
+          python -m spacy download en_core_web_sm
+          python -m spacy download it_core_news_sm
 
+      - name: Run NewsMonitor
+        run: |
+          python Newsmonitoring.py
 
       - name: Commit and push results
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Auto-update dashboard"
           branch: main
