@@ -163,7 +163,7 @@ def parse_entry_datetime(entry, fallback_tz: ZoneInfo):
 def fetch_titles(feeds, feed_tz: ZoneInfo, anchor_tz: ZoneInfo):
 
     #Fetch titles whose date == "today" in anchor_tz.
-    #Dedup only within each feed, keep duplicates across different feeds.
+    
 
     today_anchor = datetime.now(anchor_tz).date()
     titles: list[str] = []
@@ -201,7 +201,7 @@ def fetch_titles(feeds, feed_tz: ZoneInfo, anchor_tz: ZoneInfo):
             deduped.append((dt, title))
         items = deduped
 
-        # Keep duplicates across different feeds
+     
         for _, title in items:
             titles.append(title)
 
@@ -340,7 +340,7 @@ def tokenize_term_pairs(text, stopwords_set, nlp=None, only_nouns_propn=True):
             out.append((key, surface if surface else lemma))
         return out
 
-    # fallback regex
+    
     tokens_raw = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", text)
     for w in tokens_raw:
         key = w.lower()
@@ -375,7 +375,7 @@ def _phrase_key_from_surface(surface: str) -> str:
     return s
 
 
-#EN: strip leading determiners/possessives
+
 EN_LEADING_WORDS = [
     "the", "a", "an",
     "this", "that", "these", "those",
@@ -404,7 +404,7 @@ def strip_en_leading_function_words(phrase: str) -> str:
     return s
 
 
-#IT: strip leading articles/preps + possessives
+
 ITALIAN_LEADING_CLITICS = [
     "l'", "l’", "un'", "un’",
     "il", "lo", "la", "i", "gli", "le",
@@ -449,10 +449,7 @@ def strip_it_leading_function_words(phrase: str) -> str:
 # NEW: phrase quality scoring
 
 def phrase_tokens_info(span, stopwords_set: set[str]):
-    # For a spaCy Span (noun chunk):
-      #- words: list of lowercase alpha tokens (loosely filtered)
-      #- content_words: words not in stopwords_set and len>=3
-      #- has_propn: True if any token in span is PROPN
+
 
     words = []
     content_words = []
