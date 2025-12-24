@@ -955,7 +955,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
                         <h3>Top 10 unigrams</h3>
                         {html_top_uni}
 
-                        <h3>Top 10 phrases (entities + noun chunks, cleaned & filtered)</h3>
+                        <h3>Top 10 phrases</h3>
                         {html_top_phrase}
 
                         <h3>Top 10 new terms (vs previous day)</h3>
