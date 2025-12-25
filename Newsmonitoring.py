@@ -163,7 +163,7 @@ def parse_entry_datetime(entry, fallback_tz: ZoneInfo):
 def fetch_titles(feeds, feed_tz: ZoneInfo, anchor_tz: ZoneInfo):
 
     #Fetch titles whose date == "today" in anchor_tz.
-    
+
 
     today_anchor = datetime.now(anchor_tz).date()
     titles: list[str] = []
@@ -201,7 +201,7 @@ def fetch_titles(feeds, feed_tz: ZoneInfo, anchor_tz: ZoneInfo):
             deduped.append((dt, title))
         items = deduped
 
-     
+
         for _, title in items:
             titles.append(title)
 
@@ -340,7 +340,7 @@ def tokenize_term_pairs(text, stopwords_set, nlp=None, only_nouns_propn=True):
             out.append((key, surface if surface else lemma))
         return out
 
-    
+
     tokens_raw = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", text)
     for w in tokens_raw:
         key = w.lower()
@@ -1216,6 +1216,6 @@ if __name__ == "__main__":
     save_week_dashboard_html(
         today_anchor,
         countries=list(COUNTRY_FEEDS.keys()),
-        days_back=7,
+        days_back=14,
         out_filename="index.html",
     )
