@@ -1145,7 +1145,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             btn.addEventListener('click', () => {{
                 selectedCountry = btn.getAttribute('data-country');
                 if (selectedDay === null && dayButtons.length > 0) {{
-                    selectedDay = dayButtons[dayButtons.length - 1].getAttribute('data-day');
+                    selectedDay = dayButtons[0].getAttribute('data-day');
                 }}
                 showPanel(selectedDay, selectedCountry);
             }});
@@ -1153,7 +1153,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
 
         window.addEventListener('DOMContentLoaded', () => {{
             if (dayButtons.length > 0) {{
-                selectedDay = dayButtons[dayButtons.length - 1].getAttribute('data-day'); // newest
+                selectedDay = dayButtons[0].getAttribute('data-day'); // newest
             }}
             if (countryButtons.length > 0) {{
                 selectedCountry = countryButtons[0].getAttribute('data-country');
