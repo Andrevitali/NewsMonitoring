@@ -843,7 +843,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     available_days = set()
     for c in countries:
         available_days.update(list_available_days(DATA_DIR, c))
-    days = [d for d in sorted(available_days, reverse=True) if d <= last_day][-days_back:]
+    days = [d for d in sorted(available_days, reverse=True) if d <= last_day][:days_back]
 
     if not days:
         print("[WARN] No saved days found in data/. Cannot build dashboard.")
