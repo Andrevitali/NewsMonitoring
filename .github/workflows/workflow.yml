@@ -9,7 +9,9 @@ on:
     # 09:00 Europe/Rome is 08:00 UTC in winter, 07:00 UTC in summer.
     # If you want stable "Rome times", consider adjusting seasonally or run more often.
     - cron: "0 8 * * *"
+    - cron: "0 11 * * *"
     - cron: "0 14 * * *"
+    - cron: "0 17 * * *"
     - cron: "0 21 * * *"
   workflow_dispatch:
 
