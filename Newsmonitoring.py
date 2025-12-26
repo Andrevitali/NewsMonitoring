@@ -28,7 +28,7 @@ from dateutil import parser as dtparser
 def normalize_title_key(t: str) -> str:
     t = t.lower()
     t = re.sub(r"['’]", "", t)
-    t = re.sub(r"[^a-z0-9\s]", " ", t)
+    t = re.sub(r"[^a-z0-9à-öø-ÿ\s]", " ", t)
     t = re.sub(r"\s+", " ", t).strip()
     return t
 
@@ -843,7 +843,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     available_days = set()
     for c in countries:
         available_days.update(list_available_days(DATA_DIR, c))
-    days = [d for d in sorted(available_days) if d <= last_day][-days_back:]
+    days = [d for d in sorted(available_days, reverse=True) if d <= last_day][-days_back:]
 
     if not days:
         print("[WARN] No saved days found in data/. Cannot build dashboard.")
@@ -857,7 +857,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
         return df.to_html(index=False, classes=["data-table"])
 
     day_buttons_html = "".join(
-        f'<button class="country-btn day-btn" data-day="{d.isoformat()}">{d.isoformat()}</button>'
+        f'<button class="country-btn day-btn" data-day="{d.isoformat()}">{d.strftime("%d %b %Y")}</button>'
         for d in days
     )
 
@@ -905,7 +905,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             panel = f"""
             <div class="country-dashboard panel" id="panel-{d.isoformat()}-{country}" data-day="{d.isoformat()}" data-country="{country}" style="display:none;">
                 <div class="header-row">
-                    <h2>{flag} {"UK" if country == "uk" else country.capitalize()} — {d.isoformat()}</h2>
+                    <h2>{flag} {"UK" if country == "uk" else country.capitalize()} — {d.strftime("%d %b %Y")}</h2>
                     <span class="date-pill">Updated: {generated_str}</span>
                 </div>
 
@@ -1094,16 +1094,17 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
 </head>
 <body>
     <div class="sidebar">
-        <h2>Select Date</h2>
-        <p>Pick a date (last seven days available):</p>
-        {day_buttons_html}
-        <h2 style="margin-top:16px;">Select Country</h2>
-        <p>Then pick a country:</p>
-        {country_buttons_html}
-    </div>
+  <h2>Select Country</h2>
+  <p>Pick a country:</p>
+  {country_buttons_html}
+
+  <h2 style="margin-top:16px;">Select Date</h2>
+  <p>Pick a date (up to the last 14 saved days):</p>
+  {day_buttons_html}
+</div>
     <div class="container">
         <h1>European News Dashboard</h1>
-        <p class="subtitle">----------------</p>
+        <p class="subtitle">Daily view</p>
         <p class="updated-info">Last update: {generated_str}</p>
         {''.join(panels_html)}
     </div>
