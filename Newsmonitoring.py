@@ -1103,7 +1103,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
     </div>
     <div class="container">
         <h1>European News Dashboard</h1>
-        <p class="subtitle">Week view</p>
+        <p class="subtitle">----------------</p>
         <p class="updated-info">Last update: {generated_str}</p>
         {''.join(panels_html)}
     </div>
