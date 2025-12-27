@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>European News Dashboard - 26 Dec 2025, 22:26 CET</title>
+    <title>European News Dashboard - 27 Dec 2025, 09:19 CET</title>
     <style>
         :root {
             --bg-main: #05070a;
@@ -163,17 +163,563 @@
 
   <h2 style="margin-top:16px;">Select a Date:</h2>
   <p>(up to last 14 days)</p>
-  <button class="country-btn day-btn" data-day="2025-12-26">26 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-25">25 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-24">24 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-23">23 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-22">22 Dec 2025</button>
+  <button class="country-btn day-btn" data-day="2025-12-27">27 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-26">26 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-25">25 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-24">24 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-23">23 Dec 2025</button><button class="country-btn day-btn" data-day="2025-12-22">22 Dec 2025</button>
 </div>
     <div class="container">
         <h1>European News Dashboard</h1>
         <p class="subtitle">Daily view</p>
-        <p class="updated-info">Last update: 26 Dec 2025, 22:26 CET</p>
+        <p class="updated-info">Last update: 27 Dec 2025, 09:19 CET</p>
         
+            <div class="country-dashboard panel" id="panel-2025-12-27-italy" data-day="2025-12-27" data-country="italy" style="display:none;">
+                <div class="header-row">
+                    <h2>🇮🇹 Italy — 27 Dec 2025</h2>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
+                </div>
+
+                <div class="content-grid">
+                    <div class="card">
+                        <h3>Wordcloud</h3>
+                        <img src="data/2025-12-27_italy_wordcloud.png" alt="Wordcloud italy 2025-12-27" class="wordcloud">
+                    </div>
+
+                    <div class="card tables-card">
+                        <h3>Top 10 unigrams</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>zelensky</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>trump</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>fuoco</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>notte</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>kiev</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>guerra</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>call</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>leader</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>missile</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>tempesta</td>
+      <td>3</td>
+    </tr>
+  </tbody>
+</table>
+
+                        <h3>Top 10 phrases</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>new york</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+
+                        <h3>Top 10 new terms (vs previous day)</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Current day frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>fuoco</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>notte</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>leader</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>call</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>juventus</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>new york</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>obiettivo</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>giovane</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>cessate</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>vivaldi</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+                        <h3>Top 10 increasing terms (vs previous day)</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Difference</th>
+      <th>Current day frequency</th>
+      <th>Previous day frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>kiev</td>
+      <td>3</td>
+      <td>5</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>tempesta</td>
+      <td>2</td>
+      <td>3</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>guerra</td>
+      <td>2</td>
+      <td>4</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>zelensky</td>
+      <td>1</td>
+      <td>7</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>epstein</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>neve</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+                        <h3>Top 10 decreasing terms (vs previous day)</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Difference</th>
+      <th>Current day frequency</th>
+      <th>Previous day frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>isis</td>
+      <td>-7</td>
+      <td>1</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>donna</td>
+      <td>-6</td>
+      <td>1</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>trump</td>
+      <td>-4</td>
+      <td>7</td>
+      <td>11</td>
+    </tr>
+    <tr>
+      <td>usa</td>
+      <td>-4</td>
+      <td>3</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>anno</td>
+      <td>-3</td>
+      <td>2</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>morto</td>
+      <td>-1</td>
+      <td>2</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>ucraina</td>
+      <td>-1</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>russo</td>
+      <td>-1</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>russia</td>
+      <td>-1</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>missile</td>
+      <td>-1</td>
+      <td>3</td>
+      <td>4</td>
+    </tr>
+  </tbody>
+</table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="country-dashboard panel" id="panel-2025-12-27-uk" data-day="2025-12-27" data-country="uk" style="display:none;">
+                <div class="header-row">
+                    <h2>🇬🇧 UK — 27 Dec 2025</h2>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
+                </div>
+
+                <div class="content-grid">
+                    <div class="card">
+                        <h3>Wordcloud</h3>
+                        <img src="data/2025-12-27_uk_wordcloud.png" alt="Wordcloud uk 2025-12-27" class="wordcloud">
+                    </div>
+
+                    <div class="card tables-card">
+                        <h3>Top 10 unigrams</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>trump</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>thailand</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>cambodia</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>charles</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>ceasefire</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>clash</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>talk</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>election</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>union</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>strike</td>
+      <td>3</td>
+    </tr>
+  </tbody>
+</table>
+
+                        <h3>Top 10 phrases</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>military gap year</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>prince william</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>king charles</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>trade deal</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>deadly clashes</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>stunning confession</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>husbands kidnapping</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>malaysias biggest mystery</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>russian war</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>myanmars military rulers</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+
+                        <h3>Top 10 new terms (vs previous day)</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Current day frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>cambodia</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>charles</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>ceasefire</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>union</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>king charles</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>clash</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>prince william</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>trade deal</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>military gap year</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>agreement</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+                        <h3>Top 10 increasing terms (vs previous day)</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Difference</th>
+      <th>Current day frequency</th>
+      <th>Previous day frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>thailand</td>
+      <td>2</td>
+      <td>5</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>election</td>
+      <td>2</td>
+      <td>3</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>flight</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>zelenskyy</td>
+      <td>1</td>
+      <td>3</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>starmer</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>thousand</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+                        <h3>Top 10 decreasing terms (vs previous day)</h3>
+                        <table border="1" class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Term</th>
+      <th>Difference</th>
+      <th>Current day frequency</th>
+      <th>Previous day frequency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>israel</td>
+      <td>-4</td>
+      <td>3</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <td>strike</td>
+      <td>-3</td>
+      <td>3</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>talk</td>
+      <td>-3</td>
+      <td>3</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>trump</td>
+      <td>-2</td>
+      <td>7</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <td>somaliland</td>
+      <td>-2</td>
+      <td>2</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>sea</td>
+      <td>-2</td>
+      <td>1</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>record</td>
+      <td>-1</td>
+      <td>2</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>russian</td>
+      <td>-1</td>
+      <td>2</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>car</td>
+      <td>-1</td>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+                    </div>
+                </div>
+            </div>
+            
             <div class="country-dashboard panel" id="panel-2025-12-26-italy" data-day="2025-12-26" data-country="italy" style="display:none;">
                 <div class="header-row">
                     <h2>🇮🇹 Italy — 26 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -293,6 +839,10 @@
       <td>7</td>
     </tr>
     <tr>
+      <td>parigi</td>
+      <td>4</td>
+    </tr>
+    <tr>
       <td>metro</td>
       <td>4</td>
     </tr>
@@ -301,23 +851,19 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>parigi</td>
-      <td>4</td>
-    </tr>
-    <tr>
       <td>california</td>
       <td>4</td>
     </tr>
     <tr>
-      <td>siria</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>onore</td>
+      <td>laura mattarella</td>
       <td>3</td>
     </tr>
     <tr>
       <td>dovere</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>siria</td>
       <td>3</td>
     </tr>
   </tbody>
@@ -340,16 +886,16 @@
       <td>5</td>
     </tr>
     <tr>
-      <td>attacco</td>
-      <td>3</td>
-      <td>6</td>
-      <td>3</td>
-    </tr>
-    <tr>
       <td>ferito</td>
       <td>3</td>
       <td>4</td>
       <td>1</td>
+    </tr>
+    <tr>
+      <td>attacco</td>
+      <td>3</td>
+      <td>6</td>
+      <td>3</td>
     </tr>
     <tr>
       <td>usa</td>
@@ -358,7 +904,7 @@
       <td>5</td>
     </tr>
     <tr>
-      <td>italiano</td>
+      <td>dialogo</td>
       <td>1</td>
       <td>2</td>
       <td>1</td>
@@ -370,25 +916,25 @@
       <td>1</td>
     </tr>
     <tr>
-      <td>milione</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-    </tr>
-    <tr>
       <td>strada</td>
       <td>1</td>
       <td>2</td>
       <td>1</td>
     </tr>
     <tr>
-      <td>dialogo</td>
+      <td>italiano</td>
       <td>1</td>
       <td>2</td>
       <td>1</td>
     </tr>
     <tr>
       <td>guerra</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>milione</td>
       <td>1</td>
       <td>2</td>
       <td>1</td>
@@ -419,10 +965,10 @@
       <td>7</td>
     </tr>
     <tr>
-      <td>mosca</td>
+      <td>morto</td>
       <td>-3</td>
-      <td>2</td>
-      <td>5</td>
+      <td>3</td>
+      <td>6</td>
     </tr>
     <tr>
       <td>putin</td>
@@ -431,16 +977,10 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>morto</td>
+      <td>mosca</td>
       <td>-3</td>
-      <td>3</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <td>elezione</td>
-      <td>-2</td>
-      <td>1</td>
-      <td>3</td>
+      <td>2</td>
+      <td>5</td>
     </tr>
     <tr>
       <td>anno</td>
@@ -455,16 +995,22 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>addio</td>
+      <td>elezione</td>
+      <td>-2</td>
+      <td>1</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>emilia-romagna</td>
       <td>-1</td>
       <td>1</td>
       <td>2</td>
     </tr>
     <tr>
-      <td>zelensky</td>
+      <td>primo</td>
       <td>-1</td>
-      <td>6</td>
-      <td>7</td>
+      <td>1</td>
+      <td>2</td>
     </tr>
   </tbody>
 </table>
@@ -475,7 +1021,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-26-uk" data-day="2025-12-26" data-country="uk" style="display:none;">
                 <div class="header-row">
                     <h2>🇬🇧 UK — 26 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -619,7 +1165,7 @@
       <td>5</td>
     </tr>
     <tr>
-      <td>us judge</td>
+      <td>detention</td>
       <td>4</td>
     </tr>
     <tr>
@@ -627,15 +1173,15 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>detention</td>
+      <td>us judge</td>
       <td>4</td>
     </tr>
     <tr>
-      <td>christmas day swim</td>
+      <td>trump meeting</td>
       <td>3</td>
     </tr>
     <tr>
-      <td>california</td>
+      <td>alaa abd el fattah</td>
       <td>3</td>
     </tr>
   </tbody>
@@ -664,6 +1210,12 @@
       <td>2</td>
     </tr>
     <tr>
+      <td>striker</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
       <td>risk</td>
       <td>1</td>
       <td>2</td>
@@ -674,12 +1226,6 @@
       <td>1</td>
       <td>3</td>
       <td>2</td>
-    </tr>
-    <tr>
-      <td>striker</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
     </tr>
     <tr>
       <td>country</td>
@@ -713,10 +1259,10 @@
       <td>3</td>
     </tr>
     <tr>
-      <td>child</td>
+      <td>russian</td>
       <td>-1</td>
-      <td>1</td>
-      <td>2</td>
+      <td>3</td>
+      <td>4</td>
     </tr>
     <tr>
       <td>missile</td>
@@ -731,16 +1277,16 @@
       <td>2</td>
     </tr>
     <tr>
-      <td>starmer</td>
+      <td>child</td>
       <td>-1</td>
       <td>1</td>
       <td>2</td>
     </tr>
     <tr>
-      <td>russian</td>
+      <td>starmer</td>
       <td>-1</td>
-      <td>3</td>
-      <td>4</td>
+      <td>1</td>
+      <td>2</td>
     </tr>
   </tbody>
 </table>
@@ -751,7 +1297,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-25-italy" data-day="2025-12-25" data-country="italy" style="display:none;">
                 <div class="header-row">
                     <h2>🇮🇹 Italy — 25 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -859,10 +1405,6 @@
       <td>6</td>
     </tr>
     <tr>
-      <td>patto</td>
-      <td>4</td>
-    </tr>
-    <tr>
       <td>bambino</td>
       <td>4</td>
     </tr>
@@ -871,7 +1413,11 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>elezione</td>
+      <td>patto</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>francia</td>
       <td>3</td>
     </tr>
     <tr>
@@ -879,19 +1425,19 @@
       <td>3</td>
     </tr>
     <tr>
-      <td>comandante</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>ravennate</td>
-      <td>3</td>
-    </tr>
-    <tr>
       <td>kilimangiaro</td>
       <td>3</td>
     </tr>
     <tr>
-      <td>salvini</td>
+      <td>attacco</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>elezione</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>politica</td>
       <td>3</td>
     </tr>
   </tbody>
@@ -932,6 +1478,18 @@
       <td>1</td>
     </tr>
     <tr>
+      <td>augurio</td>
+      <td>2</td>
+      <td>6</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>cremlino</td>
+      <td>2</td>
+      <td>4</td>
+      <td>2</td>
+    </tr>
+    <tr>
       <td>ucraina</td>
       <td>2</td>
       <td>7</td>
@@ -944,28 +1502,16 @@
       <td>1</td>
     </tr>
     <tr>
-      <td>cremlino</td>
-      <td>2</td>
-      <td>4</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <td>augurio</td>
-      <td>2</td>
-      <td>6</td>
-      <td>4</td>
-    </tr>
-    <tr>
-      <td>zelensky</td>
+      <td>primo</td>
       <td>1</td>
-      <td>7</td>
-      <td>6</td>
+      <td>2</td>
+      <td>1</td>
     </tr>
     <tr>
-      <td>russia</td>
+      <td>europeo</td>
       <td>1</td>
-      <td>4</td>
-      <td>3</td>
+      <td>2</td>
+      <td>1</td>
     </tr>
   </tbody>
 </table>
@@ -987,22 +1533,16 @@
       <td>17</td>
     </tr>
     <tr>
-      <td>esplosione</td>
-      <td>-5</td>
-      <td>1</td>
-      <td>6</td>
-    </tr>
-    <tr>
       <td>guerra</td>
       <td>-5</td>
       <td>1</td>
       <td>6</td>
     </tr>
     <tr>
-      <td>moschea</td>
-      <td>-4</td>
+      <td>esplosione</td>
+      <td>-5</td>
       <td>1</td>
-      <td>5</td>
+      <td>6</td>
     </tr>
     <tr>
       <td>morto</td>
@@ -1011,22 +1551,16 @@
       <td>10</td>
     </tr>
     <tr>
+      <td>moschea</td>
+      <td>-4</td>
+      <td>1</td>
+      <td>5</td>
+    </tr>
+    <tr>
       <td>caso</td>
       <td>-3</td>
       <td>1</td>
       <td>4</td>
-    </tr>
-    <tr>
-      <td>milione</td>
-      <td>-2</td>
-      <td>1</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>visto</td>
-      <td>-2</td>
-      <td>1</td>
-      <td>3</td>
     </tr>
     <tr>
       <td>mosca</td>
@@ -1035,7 +1569,19 @@
       <td>7</td>
     </tr>
     <tr>
-      <td>latitante</td>
+      <td>visto</td>
+      <td>-2</td>
+      <td>1</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>milione</td>
+      <td>-2</td>
+      <td>1</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>persona</td>
       <td>-1</td>
       <td>1</td>
       <td>2</td>
@@ -1049,7 +1595,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-25-uk" data-day="2025-12-25" data-country="uk" style="display:none;">
                 <div class="header-row">
                     <h2>🇬🇧 UK — 25 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -1181,7 +1727,7 @@
       <td>5</td>
     </tr>
     <tr>
-      <td>royal family</td>
+      <td>new archbishop</td>
       <td>4</td>
     </tr>
     <tr>
@@ -1189,7 +1735,7 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>new archbishop</td>
+      <td>royal family</td>
       <td>4</td>
     </tr>
     <tr>
@@ -1197,19 +1743,19 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>president</td>
+      <td>search</td>
       <td>3</td>
     </tr>
     <tr>
-      <td>pope</td>
+      <td>missile</td>
       <td>3</td>
     </tr>
     <tr>
-      <td>archbishop</td>
+      <td>immigration</td>
       <td>3</td>
     </tr>
     <tr>
-      <td>plea</td>
+      <td>christmas sermons</td>
       <td>3</td>
     </tr>
   </tbody>
@@ -1269,13 +1815,13 @@
       <td>8</td>
     </tr>
     <tr>
-      <td>christmas eve</td>
+      <td>death</td>
       <td>-4</td>
       <td>2</td>
       <td>6</td>
     </tr>
     <tr>
-      <td>death</td>
+      <td>christmas eve</td>
       <td>-4</td>
       <td>2</td>
       <td>6</td>
@@ -1305,10 +1851,10 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>child</td>
+      <td>snow</td>
       <td>-1</td>
+      <td>1</td>
       <td>2</td>
-      <td>3</td>
     </tr>
     <tr>
       <td>time</td>
@@ -1331,7 +1877,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-24-italy" data-day="2025-12-24" data-country="italy" style="display:none;">
                 <div class="header-row">
                     <h2>🇮🇹 Italy — 24 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -1439,7 +1985,19 @@
       <td>4</td>
     </tr>
     <tr>
+      <td>figlio</td>
+      <td>3</td>
+    </tr>
+    <tr>
       <td>indagine</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>commissario</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>breton</td>
       <td>3</td>
     </tr>
     <tr>
@@ -1448,18 +2006,6 @@
     </tr>
     <tr>
       <td>visto</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>milione</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>naufragio</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <td>breton</td>
       <td>3</td>
     </tr>
   </tbody>
@@ -1506,12 +2052,6 @@
       <td>1</td>
     </tr>
     <tr>
-      <td>roma</td>
-      <td>2</td>
-      <td>3</td>
-      <td>1</td>
-    </tr>
-    <tr>
       <td>putin</td>
       <td>2</td>
       <td>3</td>
@@ -1524,13 +2064,19 @@
       <td>1</td>
     </tr>
     <tr>
+      <td>roma</td>
+      <td>2</td>
+      <td>3</td>
+      <td>1</td>
+    </tr>
+    <tr>
       <td>morto</td>
       <td>2</td>
       <td>10</td>
       <td>8</td>
     </tr>
     <tr>
-      <td>novità</td>
+      <td>russo</td>
       <td>1</td>
       <td>2</td>
       <td>1</td>
@@ -1573,10 +2119,10 @@
       <td>5</td>
     </tr>
     <tr>
-      <td>natale</td>
+      <td>madre</td>
       <td>-3</td>
-      <td>9</td>
-      <td>12</td>
+      <td>1</td>
+      <td>4</td>
     </tr>
     <tr>
       <td>aereo</td>
@@ -1585,7 +2131,13 @@
       <td>5</td>
     </tr>
     <tr>
-      <td>madre</td>
+      <td>natale</td>
+      <td>-3</td>
+      <td>9</td>
+      <td>12</td>
+    </tr>
+    <tr>
+      <td>esercito</td>
       <td>-3</td>
       <td>1</td>
       <td>4</td>
@@ -1597,13 +2149,7 @@
       <td>6</td>
     </tr>
     <tr>
-      <td>esercito</td>
-      <td>-3</td>
-      <td>1</td>
-      <td>4</td>
-    </tr>
-    <tr>
-      <td>papa</td>
+      <td>mamma</td>
       <td>-2</td>
       <td>1</td>
       <td>3</td>
@@ -1617,7 +2163,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-24-uk" data-day="2025-12-24" data-country="uk" style="display:none;">
                 <div class="header-row">
                     <h2>🇬🇧 UK — 24 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -1753,6 +2299,10 @@
       <td>5</td>
     </tr>
     <tr>
+      <td>visa ban</td>
+      <td>4</td>
+    </tr>
+    <tr>
       <td>censorship</td>
       <td>4</td>
     </tr>
@@ -1761,15 +2311,11 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>visa ban</td>
-      <td>4</td>
-    </tr>
-    <tr>
-      <td>document</td>
+      <td>canal collapse</td>
       <td>3</td>
     </tr>
     <tr>
-      <td>white christmas</td>
+      <td>british 13 year old boy</td>
       <td>3</td>
     </tr>
     <tr>
@@ -1800,22 +2346,16 @@
       <td>1</td>
     </tr>
     <tr>
-      <td>explosion</td>
-      <td>4</td>
-      <td>5</td>
-      <td>1</td>
-    </tr>
-    <tr>
       <td>death</td>
       <td>4</td>
       <td>6</td>
       <td>2</td>
     </tr>
     <tr>
-      <td>family</td>
-      <td>2</td>
+      <td>explosion</td>
       <td>4</td>
-      <td>2</td>
+      <td>5</td>
+      <td>1</td>
     </tr>
     <tr>
       <td>ukraine</td>
@@ -1824,31 +2364,37 @@
       <td>6</td>
     </tr>
     <tr>
+      <td>family</td>
+      <td>2</td>
+      <td>4</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>zelensky</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>file</td>
+      <td>1</td>
+      <td>3</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>tanker</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>snow</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1</td>
+    </tr>
+    <tr>
       <td>kate</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>look</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>law</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>nigeria</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>israel</td>
       <td>1</td>
       <td>2</td>
       <td>1</td>
@@ -1897,16 +2443,16 @@
       <td>7</td>
     </tr>
     <tr>
-      <td>turkey</td>
-      <td>-3</td>
-      <td>2</td>
-      <td>5</td>
-    </tr>
-    <tr>
       <td>release</td>
       <td>-3</td>
       <td>1</td>
       <td>4</td>
+    </tr>
+    <tr>
+      <td>turkey</td>
+      <td>-3</td>
+      <td>2</td>
+      <td>5</td>
     </tr>
     <tr>
       <td>plot</td>
@@ -1935,7 +2481,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-23-italy" data-day="2025-12-23" data-country="italy" style="display:none;">
                 <div class="header-row">
                     <h2>🇮🇹 Italy — 23 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -2059,11 +2605,11 @@
   </thead>
   <tbody>
     <tr>
-      <td>londra</td>
+      <td>greta</td>
       <td>8</td>
     </tr>
     <tr>
-      <td>greta</td>
+      <td>londra</td>
       <td>8</td>
     </tr>
     <tr>
@@ -2075,6 +2621,10 @@
       <td>7</td>
     </tr>
     <tr>
+      <td>corte</td>
+      <td>6</td>
+    </tr>
+    <tr>
       <td>fatto</td>
       <td>6</td>
     </tr>
@@ -2083,19 +2633,15 @@
       <td>6</td>
     </tr>
     <tr>
-      <td>corte</td>
-      <td>6</td>
+      <td>via libera</td>
+      <td>5</td>
     </tr>
     <tr>
-      <td>suprema</td>
+      <td>pal</td>
       <td>5</td>
     </tr>
     <tr>
       <td>mameli</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <td>inno</td>
       <td>5</td>
     </tr>
   </tbody>
@@ -2112,6 +2658,12 @@
   </thead>
   <tbody>
     <tr>
+      <td>trump</td>
+      <td>8</td>
+      <td>14</td>
+      <td>6</td>
+    </tr>
+    <tr>
       <td>senato</td>
       <td>8</td>
       <td>10</td>
@@ -2124,18 +2676,6 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>trump</td>
-      <td>8</td>
-      <td>14</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <td>epstein</td>
-      <td>5</td>
-      <td>7</td>
-      <td>2</td>
-    </tr>
-    <tr>
       <td>via</td>
       <td>5</td>
       <td>6</td>
@@ -2145,6 +2685,18 @@
       <td>turchia</td>
       <td>5</td>
       <td>6</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>epstein</td>
+      <td>5</td>
+      <td>7</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <td>aereo</td>
+      <td>4</td>
+      <td>5</td>
       <td>1</td>
     </tr>
     <tr>
@@ -2160,16 +2712,10 @@
       <td>1</td>
     </tr>
     <tr>
-      <td>aereo</td>
-      <td>4</td>
-      <td>5</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <td>euro</td>
+      <td>caso</td>
       <td>3</td>
-      <td>4</td>
-      <td>1</td>
+      <td>5</td>
+      <td>2</td>
     </tr>
   </tbody>
 </table>
@@ -2197,13 +2743,13 @@
       <td>10</td>
     </tr>
     <tr>
-      <td>folla</td>
+      <td>cinque</td>
       <td>-4</td>
       <td>1</td>
       <td>5</td>
     </tr>
     <tr>
-      <td>grazie</td>
+      <td>feriti</td>
       <td>-4</td>
       <td>1</td>
       <td>5</td>
@@ -2213,18 +2759,6 @@
       <td>-4</td>
       <td>5</td>
       <td>9</td>
-    </tr>
-    <tr>
-      <td>feriti</td>
-      <td>-4</td>
-      <td>1</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <td>cinque</td>
-      <td>-4</td>
-      <td>1</td>
-      <td>5</td>
     </tr>
     <tr>
       <td>napoli</td>
@@ -2239,7 +2773,19 @@
       <td>5</td>
     </tr>
     <tr>
-      <td>voto</td>
+      <td>folla</td>
+      <td>-4</td>
+      <td>1</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>grazie</td>
+      <td>-4</td>
+      <td>1</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>forza</td>
       <td>-3</td>
       <td>1</td>
       <td>4</td>
@@ -2253,7 +2799,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-23-uk" data-day="2025-12-23" data-country="uk" style="display:none;">
                 <div class="header-row">
                     <h2>🇬🇧 UK — 23 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -2377,15 +2923,15 @@
   </thead>
   <tbody>
     <tr>
-      <td>inheritance</td>
-      <td>8</td>
-    </tr>
-    <tr>
       <td>inheritance tax</td>
       <td>8</td>
     </tr>
     <tr>
       <td>tax</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <td>inheritance</td>
       <td>8</td>
     </tr>
     <tr>
@@ -2405,15 +2951,15 @@
       <td>6</td>
     </tr>
     <tr>
+      <td>russell charged</td>
+      <td>5</td>
+    </tr>
+    <tr>
       <td>maxwell</td>
       <td>5</td>
     </tr>
     <tr>
-      <td>bob vylan</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <td>bob</td>
+      <td>russell</td>
       <td>5</td>
     </tr>
   </tbody>
@@ -2472,12 +3018,6 @@
       <td>4</td>
     </tr>
     <tr>
-      <td>gun</td>
-      <td>4</td>
-      <td>6</td>
-      <td>2</td>
-    </tr>
-    <tr>
       <td>turkey</td>
       <td>4</td>
       <td>5</td>
@@ -2488,6 +3028,12 @@
       <td>4</td>
       <td>7</td>
       <td>3</td>
+    </tr>
+    <tr>
+      <td>ukraine</td>
+      <td>4</td>
+      <td>6</td>
+      <td>2</td>
     </tr>
   </tbody>
 </table>
@@ -2503,16 +3049,16 @@
   </thead>
   <tbody>
     <tr>
-      <td>aged</td>
-      <td>-5</td>
-      <td>2</td>
-      <td>7</td>
-    </tr>
-    <tr>
       <td>car</td>
       <td>-5</td>
       <td>1</td>
       <td>6</td>
+    </tr>
+    <tr>
+      <td>aged</td>
+      <td>-5</td>
+      <td>2</td>
+      <td>7</td>
     </tr>
     <tr>
       <td>dies</td>
@@ -2521,7 +3067,7 @@
       <td>10</td>
     </tr>
     <tr>
-      <td>one</td>
+      <td>city</td>
       <td>-4</td>
       <td>1</td>
       <td>5</td>
@@ -2539,15 +3085,9 @@
       <td>6</td>
     </tr>
     <tr>
-      <td>city</td>
+      <td>one</td>
       <td>-4</td>
       <td>1</td>
-      <td>5</td>
-    </tr>
-    <tr>
-      <td>dies aged</td>
-      <td>-3</td>
-      <td>2</td>
       <td>5</td>
     </tr>
     <tr>
@@ -2557,7 +3097,13 @@
       <td>5</td>
     </tr>
     <tr>
-      <td>south</td>
+      <td>watch</td>
+      <td>-3</td>
+      <td>2</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>boats</td>
       <td>-3</td>
       <td>1</td>
       <td>4</td>
@@ -2571,7 +3117,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-22-italy" data-day="2025-12-22" data-country="italy" style="display:none;">
                 <div class="header-row">
                     <h2>🇮🇹 Italy — 22 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
@@ -2698,7 +3244,7 @@
             <div class="country-dashboard panel" id="panel-2025-12-22-uk" data-day="2025-12-22" data-country="uk" style="display:none;">
                 <div class="header-row">
                     <h2>🇬🇧 UK — 22 Dec 2025</h2>
-                    <span class="date-pill">Updated: 26 Dec 2025, 22:26 CET</span>
+                    <span class="date-pill">Updated: 27 Dec 2025, 09:19 CET</span>
                 </div>
 
                 <div class="content-grid">
