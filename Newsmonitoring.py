@@ -500,23 +500,33 @@ def extract_phrase_pairs_from_doc(
         allowed_ent_labels = {"PERSON", "ORG", "GPE", "LOC", "NORP"}
 
     if max_chunk_words_by_lang is None:
-
         max_chunk_words_by_lang = {"en": 6, "it": 6}
 
     max_words = max_chunk_words_by_lang.get(lang, 6)
 
     out = []
 
+    # --- NEW: strip trailing locatives in Italian noun phrases ---
+    _IT_TAIL_LOC_RE = re.compile(
+        r"\b(?:a|ad|in|su|sotto|da|nel|nello|nella|nei|negli|nelle|"
+        r"al|allo|alla|ai|agli|alle)\b\s+.+$",
+        flags=re.IGNORECASE
+    )
+
+    def strip_it_locative_tail(phrase: str) -> str:
+        return _IT_TAIL_LOC_RE.sub("", phrase).strip()
+
     def clean_disp(disp: str) -> str:
         disp = _clean_phrase(disp)
         if lang == "it":
             disp = strip_it_leading_function_words(disp)
+            disp = strip_it_locative_tail(disp)  # <-- INSERITO QUI
         else:
             disp = strip_en_leading_function_words(disp)
         disp = _clean_phrase(disp)
         return disp
 
-
+    # --- ENTITIES ---
     for ent in doc.ents:
         if ent.label_ not in allowed_ent_labels:
             continue
@@ -533,7 +543,7 @@ def extract_phrase_pairs_from_doc(
 
         out.append((key, disp))
 
-
+    # --- NOUN CHUNKS ---
     if use_noun_chunks and hasattr(doc, "noun_chunks"):
         for chunk in doc.noun_chunks:
             disp = clean_disp(chunk.text)
@@ -556,7 +566,6 @@ def extract_phrase_pairs_from_doc(
                 continue
 
             overlaps_ent = chunk_overlaps_entity(chunk, doc, allowed_ent_labels)
-
 
             if not (has_propn or overlaps_ent):
                 if len(content_words) < 2:
@@ -666,8 +675,35 @@ def get_document_frequency_counts_topics(
 
 
 #  WORDCLOUD
+from collections import defaultdict, Counter
+
+def build_wc_counts(today_counts: dict, display_map: dict) -> dict:
+    agg = defaultdict(float)
+    variants = defaultdict(Counter)
+
+    for k, v in today_counts.items():
+        disp = display_map.get(k, k)  # es: "Tempesta", "Trump", "Kiev", "New York"
+        norm = _phrase_key_from_surface(disp)  # normalizza per unire (lower, no punteggiatura)
+        agg[norm] += float(v)
+        variants[norm][disp] += float(v)
+
+    out = {}
+    for norm, total in agg.items():
+        # scegli label: preferisci quella che contiene maiuscole, poi più lunga, poi alfabetica
+        best_disp = sorted(
+            variants[norm].items(),
+            key=lambda x: (-x[1], -any(ch.isupper() for ch in x[0]), -len(x[0]), x[0])
+        )[0][0]
+        out[best_disp] = total
+
+    return out
+
+
+import math
 
 def make_wordcloud_from_term_counts(term_counts, save_path=None):
+    term_counts = {k: math.sqrt(v) for k, v in term_counts.items()}
+
     wc = WordCloud(
         width=1600,
         height=800,
@@ -678,9 +714,12 @@ def make_wordcloud_from_term_counts(term_counts, save_path=None):
         collocations=False,
         max_words=350,
         prefer_horizontal=0.8,
-        relative_scaling=1.0,
+        relative_scaling=0.8,
+        max_font_size=400,
+        min_font_size=5,
         random_state=42,
     ).generate_from_frequencies(term_counts)
+
 
     plt.figure(figsize=(14, 7))
     plt.imshow(wc, interpolation="bilinear")
@@ -1209,7 +1248,7 @@ if __name__ == "__main__":
 
         save_counts_for_day(today_anchor, country, today_counts)
 
-        counts_for_wc = {display_map.get(k, k): v for k, v in today_counts.items()}
+        counts_for_wc = build_wc_counts(today_counts, display_map)
         wc_path_today = get_wordcloud_filename_for_day(today_anchor, country)
         make_wordcloud_from_term_counts(counts_for_wc, save_path=str(wc_path_today))
 
