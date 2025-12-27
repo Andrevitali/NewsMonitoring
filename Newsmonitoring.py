@@ -553,22 +553,34 @@ def extract_phrase_pairs_from_doc(
             if len(disp) < 5:
                 continue
 
-            key = _phrase_key_from_surface(disp)
-            if len(key) < 5 or " " not in key:
+            # tokens dalla disp pulita (NON dal chunk originale)
+            disp_words_all = [w.lower() for w in _words_alpha(disp)]
+            if len(disp_words_all) < 2:
+                continue
+
+            # key senza stopwords (per contare meglio le frasi)
+            disp_words = [w for w in disp_words_all if w not in stopwords_set]
+            if len(disp_words) < 2:
+                continue
+
+            # vincolo lunghezza sulla disp (non sul chunk originale)
+            if len(disp_words) > max_words:
+                continue
+
+            key = " ".join(disp_words)
+
+            if len(key) < 5:
                 continue
             if _is_stopword_phrase(key, stopwords_set):
                 continue
 
-            words, content_words, has_propn = phrase_tokens_info(chunk, stopwords_set)
-            n_words = len(words)
-
-            if n_words < 2 or n_words > max_words:
-                continue
-
+            # qualità: o include PROPN/overlap entità, oppure almeno 2 content words
+            disp_content = [w for w in disp_words if len(w) >= 3]
             overlaps_ent = chunk_overlaps_entity(chunk, doc, allowed_ent_labels)
+            _, _, has_propn = phrase_tokens_info(chunk, stopwords_set)
 
             if not (has_propn or overlaps_ent):
-                if len(content_words) < 2:
+                if len(disp_content) < 2:
                     continue
 
             out.append((key, disp))
@@ -705,19 +717,21 @@ def make_wordcloud_from_term_counts(term_counts, save_path=None):
     term_counts = {k: math.sqrt(v) for k, v in term_counts.items()}
 
     wc = WordCloud(
-        width=1600,
-        height=800,
+        width=2000,
+        height=1000,
         background_color="black",
-        colormap="rainbow",
-        contour_width=3,
+        colormap="Spectral",
+        contour_width=1,
         contour_color="white",
         collocations=False,
-        max_words=350,
+        max_words=220,
         prefer_horizontal=0.79,
-        relative_scaling=0.8,
+        relative_scaling=0.7,
         max_font_size=400,
-        min_font_size=5,
+        min_font_size=13,
+        margin=7,
         random_state=42,
+        scale=4
     ).generate_from_frequencies(term_counts)
 
 
