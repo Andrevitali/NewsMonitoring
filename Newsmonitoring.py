@@ -220,7 +220,7 @@ COMMON_STOPWORDS = {
     "e", "ed", "le", "è", "ecco",
     "poi", "senza", "mai", "anni",
     "nuova", "tutto", "cosa", "casa", "nuovo", "nuova", "nuove", "nuovi", "ora",
-    "repubblica", "ansa", "rai", "rainews", "notizie", "italia", "italiani",
+    "repubblica", "ansa", "rai", "rainews", "notizie", "italia", "italiani","italiane","italiano","italiana"
 
     # Italian possessives
     "mio", "mia", "miei", "mie",
