@@ -727,11 +727,11 @@ def make_wordcloud_from_term_counts(term_counts, save_path=None):
         max_words=220,
         prefer_horizontal=0.98,
         relative_scaling=0.7,
-        max_font_size=400,
+        max_font_size=440,
         min_font_size=13,
         margin=7,
         random_state=42,
-        scale=4
+        scale=3
     ).generate_from_frequencies(term_counts)
 
 
