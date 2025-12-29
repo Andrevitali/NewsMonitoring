@@ -975,7 +975,7 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
                         <h3>Top 10 phrases</h3>
                         {html_top_phrase}
 
-                        <h3>Top 10 new terms (vs previous day)</h3>
+                        <h3>Top 10 new terms (not present on previous day)</h3>
                         {html_new}
                         <h3>Top 10 increasing terms (vs previous day)</h3>
                         {html_rising}
