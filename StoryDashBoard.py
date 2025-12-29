@@ -342,6 +342,8 @@ def cluster_items_into_stories(items: list[Item], stopwords_by_country: dict[str
 #
 # 7) STORY DASHBOARD HTML
 #
+# 7) STORY DASHBOARD HTML
+#
 def save_story_dashboard_html(out_path: Path, day: date):
     generated_str = datetime.now().strftime("%d %b %Y, %H:%M")
     day_str = day.isoformat()
@@ -388,6 +390,12 @@ body {{
   font-size: 1.05rem;
   font-weight: 700;
   margin-bottom: 6px;
+}}
+.brand-day {{
+  color: var(--muted);
+  font-weight: 600;
+  margin-left: 6px;
+  font-size: .95rem;
 }}
 .sub {{
   color: var(--muted);
@@ -446,7 +454,7 @@ code {{ color: var(--accent); }}
 <body>
   <div class="app">
     <aside class="sidebar">
-      <div class="brand">Story Dashboard</div>
+      <div class="brand">Story Dashboard <span id="brandDay" class="brand-day"></span></div>
       <div class="sub">Clusters of repeated stories across sources</div>
 
       <label for="countryFilter">Country</label>
@@ -463,7 +471,7 @@ code {{ color: var(--accent); }}
       <input id="q" type="text" placeholder="Search story titles (e.g., epstein, manovra)" />
 
       <div class="hint">
-        Day: <b>{day_str}</b> (UTC)<br/>
+        <br/>
         Updated: {generated_str}<br/>
       </div>
     </aside>
@@ -542,19 +550,38 @@ async function loadDay(day) {{
   const currentDay = "{day_str}";
   const days = buildLast14();
 
+  function prettyLabel(iso) {{
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return dt.toLocaleDateString('en-GB', {{
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }});
+  }}
+
   days.forEach(ds => {{
     const opt = document.createElement('option');
+    // IMPORTANT: keep ISO for filenames
     opt.value = ds;
-    opt.textContent = ds;
+    // Nice human label
+    opt.textContent = prettyLabel(ds);
     dayFilter.appendChild(opt);
   }});
 
   dayFilter.value = currentDay;
 
+  const brandDay = document.getElementById('brandDay');
+  function updateBrandDay() {{
+    brandDay.textContent = `— ${{prettyLabel(dayFilter.value)}}`;
+  }}
+  updateBrandDay();
+
   // init load
   loadDay(currentDay);
 
   dayFilter.addEventListener('change', () => {{
+    updateBrandDay();
     loadDay(dayFilter.value);
   }});
 
