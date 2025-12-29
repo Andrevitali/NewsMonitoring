@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Story Dashboard — 2025-12-29</title>
+<style>
+:root {
+  --bg:#05070a;
+  --panel:#101521;
+  --card:#141b2a;
+  --text:#f5f5f5;
+  --muted:#a0aec0;
+  --border:#263145;
+  --accent:#4fd1c5;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  background: var(--bg); color: var(--text);
+}
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+.sidebar {
+  width: 320px; max-width: 85vw;
+  border-right: 1px solid var(--border);
+  background: rgba(16,21,33,0.65);
+  padding: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+.brand {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.sub {
+  color: var(--muted);
+  font-size: .85rem;
+  margin-bottom: 16px;
+  line-height: 1.35;
+}
+label {
+  display: block;
+  color: var(--muted);
+  font-size: .82rem;
+  margin: 14px 0 6px;
+}
+select, input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 11px;
+  border-radius: 12px;
+  outline: none;
+}
+.hint {
+  color: var(--muted);
+  font-size: .78rem;
+  margin-top: 12px;
+  line-height: 1.35;
+}
+.main {
+  flex: 1;
+  padding: 0;
+}
+.frame {
+  width: 100%;
+  height: 100vh;
+  border: 0;
+  background: var(--bg);
+}
+.notfound {
+  height: 100vh;
+  padding: 26px 26px;
+}
+.notfound .title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.notfound .meta {
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.4;
+}
+code { color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Story Dashboard</div>
+      <div class="sub">Clusters of repeated stories across sources</div>
+
+      <label for="countryFilter">Country</label>
+      <select id="countryFilter">
+        <option value="all">🌍 All</option>
+        <option value="italy">🇮🇹 Italy</option>
+        <option value="uk">🇬🇧 UK</option>
+      </select>
+
+      <label for="dayFilter">Day (last 14)</label>
+      <select id="dayFilter"></select>
+
+      <label for="q">Search</label>
+      <input id="q" type="text" placeholder="Search story titles (e.g., epstein, manovra)" />
+
+      <div class="hint">
+        Day: <b>2025-12-29</b> (UTC)<br/>
+        Updated: 29 Dec 2025, 23:12<br/>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div id="notFound" class="notfound" style="display:none;">
+        <div class="title">File not found</div>
+        <div class="meta" id="notFoundMsg"></div>
+      </div>
+
+      <iframe id="contentFrame" class="frame" src=""></iframe>
+    </main>
+  </div>
+
+<script>
+const countryFilter = document.getElementById('countryFilter');
+const dayFilter = document.getElementById('dayFilter');
+const q = document.getElementById('q');
+
+const frame = document.getElementById('contentFrame');
+const notFound = document.getElementById('notFound');
+const notFoundMsg = document.getElementById('notFoundMsg');
+
+function fmt(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const da=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${da}`;
+}
+
+function buildLast14() {
+  const today = new Date(); // usa il clock locale per la lista (ok per UI)
+  const days = [];
+  for (let i=0;i<14;i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate()-i);
+    days.push(fmt(d));
+  }
+  return days;
+}
+
+function setRightNotFound(day) {
+  frame.style.display = "none";
+  notFound.style.display = "block";
+  notFoundMsg.innerHTML = `Missing: <code>stories_${day}.html</code><br/>Generate it by running the script on that day (UTC), or keep daily outputs.`;
+}
+
+function setRightFrame(url) {
+  notFound.style.display = "none";
+  frame.style.display = "block";
+  frame.src = url;
+}
+
+// carica contenuto e passa i filtri via querystring (country + q) al file content-only
+async function loadDay(day) {
+  const country = countryFilter.value;
+  const qq = encodeURIComponent((q.value || '').trim());
+  const url = `stories_${day}.html?country=${country}&q=${qq}`;
+
+  // verifica esistenza del file:
+  // Nota: funziona bene via HTTP (es. python -m http.server). Su file:// fetch può essere bloccato.
+  try {
+    const res = await fetch(`stories_${day}.html`, { method: "HEAD" });
+    if (!res.ok) {
+      setRightNotFound(day);
+      return;
+    }
+    setRightFrame(url);
+  } catch (e) {
+    // fallback: prova a caricare comunque (se fallisce, almeno non rompiamo la UI)
+    setRightFrame(url);
+  }
+}
+
+(function initUI(){
+  const currentDay = "2025-12-29";
+  const days = buildLast14();
+
+  days.forEach(ds => {
+    const opt = document.createElement('option');
+    opt.value = ds;
+    opt.textContent = ds;
+    dayFilter.appendChild(opt);
+  });
+
+  dayFilter.value = currentDay;
+
+  // init load
+  loadDay(currentDay);
+
+  dayFilter.addEventListener('change', () => {
+    loadDay(dayFilter.value);
+  });
+
+  function reloadSameDay() {
+    loadDay(dayFilter.value);
+  }
+
+  countryFilter.addEventListener('change', reloadSameDay);
+  q.addEventListener('input', () => {
+    window.clearTimeout(window.__t);
+    window.__t = window.setTimeout(reloadSameDay, 120);
+  });
+})();
+</script>
+</body>
+</html>
