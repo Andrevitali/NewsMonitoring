@@ -506,7 +506,7 @@ def extract_phrase_pairs_from_doc(
 
     out = []
 
-    # --- NEW: strip trailing locatives in Italian noun phrases ---
+    # strip trailing locatives in Italian noun phrases --- Improves chunking
     _IT_TAIL_LOC_RE = re.compile(
         r"\b(?:a|ad|in|su|sotto|da|nel|nello|nella|nei|negli|nelle|"
         r"al|allo|alla|ai|agli|alle)\b\s+.+$",
@@ -520,7 +520,7 @@ def extract_phrase_pairs_from_doc(
         disp = _clean_phrase(disp)
         if lang == "it":
             disp = strip_it_leading_function_words(disp)
-            disp = strip_it_locative_tail(disp)  # <-- INSERITO QUI
+            disp = strip_it_locative_tail(disp)
         else:
             disp = strip_en_leading_function_words(disp)
         disp = _clean_phrase(disp)
@@ -536,7 +536,8 @@ def extract_phrase_pairs_from_doc(
             continue
 
         key = _phrase_key_from_surface(disp)
-        if len(key) < 3:
+        KEEP_SHORT = {"eu", "ue", "us", "uk", "un", "g7", "g8"}
+        if len(key) < 3 and key not in KEEP_SHORT:
             continue
         if _is_stopword_phrase(key, stopwords_set):
             continue
@@ -667,7 +668,7 @@ def get_document_frequency_counts_topics(
     if phrase_min_df and phrase_min_df > 1:
         df_phrase = Counter({k: v for k, v in df_phrase.items() if v >= phrase_min_df})
 
-    # Global suppression of unigrams that are inside any kept phrase
+    #
     if global_suppress_unigrams_inside_phrases and df_phrase:
         phrase_words_global = set()
         for pk in df_phrase.keys():
@@ -694,14 +695,13 @@ def build_wc_counts(today_counts: dict, display_map: dict) -> dict:
     variants = defaultdict(Counter)
 
     for k, v in today_counts.items():
-        disp = display_map.get(k, k)  # es: "Tempesta", "Trump", "Kiev", "New York"
+        disp = display_map.get(k, k)
         norm = _phrase_key_from_surface(disp)  # normalizza per unire (lower, no punteggiatura)
         agg[norm] += float(v)
         variants[norm][disp] += float(v)
 
     out = {}
     for norm, total in agg.items():
-        # scegli label: preferisci quella che contiene maiuscole, poi più lunga, poi alfabetica
         best_disp = sorted(
             variants[norm].items(),
             key=lambda x: (-x[1], -any(ch.isupper() for ch in x[0]), -len(x[0]), x[0])
