@@ -304,7 +304,7 @@ def cluster_items_into_stories(items: list[Item], stopwords_by_country: dict[str
                            len(t) >= 5}  # assumiamo che parole di 5 o più lettere portino più significato
             cent_strong = {t for t in st["centroid_tokens"] if len(t) >= 5}  # centroide di parole più lunghe di 5
             shared_strong_n = len(toks_strong & cent_strong)  # intersezione
-            fallback = (shared_n >= 3 and shared_strong_n >= 2)
+            fallback = (shared_n >= 3 and shared_strong_n >= 1)  # almeno 3 parole condivise di cui 1 importante
             if fallback:
                 score = max(score, threshold)
 
@@ -319,6 +319,8 @@ def cluster_items_into_stories(items: list[Item], stopwords_by_country: dict[str
             st["last_dt"] = max(st["last_dt"], it.dt_utc)
             st["first_dt"] = min(st["first_dt"], it.dt_utc)  # finestra temporare
             # st["centroid_tokens"] = st["centroid_tokens"] | toks  # unione centroid (il centroide cresce) problema?? può attrarre titoli non attinenti o abbassare troppo lo score
+            st["n_titles"] += 1
+            st["token_counts"].update(toks)
 
             # aggiorniamo centroide in modo "soft": token che compaiono in almeno X% dei titoli del cluster
             if st["n_titles"] < soft_after:
@@ -652,7 +654,7 @@ def save_story_content_html(out_path: Path, day: date, stories: list[dict]):
                 )
             else:
                 items_rows.append(f"<li><span class='meta'>[{pub}] {dt}</span> — {title}</li>")
-
+        all_titles = " ".join(it.title for it in items_sorted)
         cards_html.append(
             f"""
         <div class="story-card" data-country="{esc(st['country'])}">
@@ -793,8 +795,9 @@ if __name__ == "__main__":  # Questo è il modo standard in Python per dire: se 
     stories = cluster_items_into_stories(
         items=all_items,
         stopwords_by_country=STOPWORDS_BY_COUNTRY,
-        threshold=0.20,
-        centroid_min_frac=0.5,
+        threshold=0.25,
+        centroid_min_frac=0.6,  # tiene token che appaiono in almeno il 50% dei titoli del cluster
+        soft_after=7  # il soft dopo 5 notizie aggregate
     )
 
     # 1) salviamo il contenuto giornaliero (solo cards)
