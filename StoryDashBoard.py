@@ -446,6 +446,35 @@ select, input {{
   margin-top: 12px;
   line-height: 1.35;
 }}
+.dashlink{{
+  display:block;
+  margin-top: 110px;
+  padding: 10px 11px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}}
+.dashlink-title{{
+  font-size: 1.35rem;   
+  font-weight: 800;
+  line-height: 1.15;
+}}
+
+.dashlink:hover{{
+  border-color: var(--accent);
+  color: var(--accent);
+}}
+.dashlink .sub{{
+  margin: 0 0 4px 0;
+  font-size: .8rem;
+  color: var(--muted);
+  font-weight: 500;
+}}
+
+
 .main {{
   flex: 1;
   padding: 0;
@@ -486,16 +515,20 @@ code {{ color: var(--accent); }}
         <option value="uk">🇬🇧 UK</option>
       </select>
 
-      <label for="dayFilter">Day (last 14)</label>
+      <label for="dayFilter">Day (up to last 14)</label>
       <select id="dayFilter"></select>
 
       <label for="q">Search</label>
-      <input id="q" type="text" placeholder="Search story titles (e.g., epstein, manovra)" />
+      <input id="q" type="text" placeholder="Search story titles (e.g., Trump, Meloni)" />
 
       <div class="hint">
         <br/>
         Updated: {generated_str}<br/>
       </div>
+      <a class="dashlink" href="https://andrevitali.github.io/NewsMonitoring/" target="_blank" rel="noopener">
+      <div class="sub">Click here for the main dashboard</div>
+      <div class="dashlink-title">News Dashboard</div>
+      </a>
     </aside>
 
     <main class="main">
