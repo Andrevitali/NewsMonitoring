@@ -625,9 +625,8 @@ async function loadDay(day) {{
     print("[INFO] Saved story dashboard to:", out_path)
 
 
-# ============================================================
 # 7b) CONTENT-ONLY HTML (una pagina per giorno, solo cards, filtri via querystring)
-# ============================================================
+
 def save_story_content_html(out_path: Path, day: date, stories: list[dict]):
     day_str = day.isoformat()
 
@@ -655,9 +654,10 @@ def save_story_content_html(out_path: Path, day: date, stories: list[dict]):
             else:
                 items_rows.append(f"<li><span class='meta'>[{pub}] {dt}</span> — {title}</li>")
         all_titles = " ".join(it.title for it in items_sorted)
+        all_text = esc(" ".join(it.title for it in items_sorted))
         cards_html.append(
             f"""
-        <div class="story-card" data-country="{esc(st['country'])}">
+        <div class="story-card" data-country="{esc(st['country'])}" data-search="{all_text}">
             <div class="story-head">
                 <div class="story-title">{esc(st['rep_title'])}</div>
                 <div class="story-badges">
@@ -758,8 +758,8 @@ const cards = Array.from(document.querySelectorAll('.story-card'));
 
 cards.forEach(card => {{
   const okCountry = (country === 'all') || (card.getAttribute('data-country') === country);
-  const title = (card.querySelector('.story-title')?.textContent || '').toLowerCase();
-  const okSearch = !q || title.includes(q);
+  const hay = (card.getAttribute('data-search') || '').toLowerCase();
+  const okSearch = !q || hay.includes(q);
   card.style.display = (okCountry && okSearch) ? 'block' : 'none';
 }});
 </script>
