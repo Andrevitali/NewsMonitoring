@@ -29,7 +29,7 @@ _ensure_stopwords("english")
 STOP_IT = set(stopwords.words("italian"))  # creaiamo i set per le due lingue
 STOP_EN = set(stopwords.words("english"))
 
-# aggiungiamo altre stopwords
+# aggiungiamo altre stopwords (più piccolo dell'altro dashboard visto che è meno importante qui)
 COMMON_STOPWORDS = {
     # IT
     "oggi", "ieri", "solo", "ancora", "dopo", "prima", "contro", "secondo",
@@ -61,7 +61,7 @@ COUNTRY_FEEDS = {
     "italy": [
         "https://www.repubblica.it/rss/homepage/rss2.0.xml",
         "https://www.rainews.it/rss/esteri",
-        # "https://www.servizitelevideo.rai.it/televideo/pub/rss101.xml",
+        # "https://www.servizitelevideo.rai.it/televideo/pub/rss101.xml", (questo fa troppi feed e sbilancia, alcuni non rilevanit)
         "https://www.ilsole24ore.com/rss/italia.xml",
         "https://www.ilsole24ore.com/rss/mondo.xml",
         "https://www.rainews.it/rss/politica",
@@ -78,7 +78,7 @@ COUNTRY_FEEDS = {
         "https://www.theguardian.com/uk-news/rss",
         "https://www.theguardian.com/world/rss",
         "https://www.independent.co.uk/news/uk/rss",
-        # "https://www.independent.co.uk/news/world/rss",
+        # "https://www.independent.co.uk/news/world/rss", (troppi feed)
         "https://www.ft.com/rss/home/international",
         "https://feeds.bbci.co.uk/news/world/rss.xml?edition=uk",
         "https://feeds.skynews.com/feeds/rss/world.xml",
@@ -87,7 +87,8 @@ COUNTRY_FEEDS = {
 }
 
 
-# 3) DATA MODEL credo una classe con dataclass (stesso che fare __init__ ma più immediato e con meno codice) dove immagazzino le news e i loro dati
+# 3) DATA MODEL credo una classe (ITEM) con @dataclass
+# (stesso che fare "class Item: def __init__ etc." ma più immediato e con meno codice) dove immagazzino le news e i loro dati
 #
 @dataclass(frozen=True)
 class Item:
@@ -100,7 +101,7 @@ class Item:
 
 
 #  4 PUBLISHER NORMALISATION
-# si fa un dizionario per normalizzare le fonti
+# facciamo un dizionario per normalizzare le fonti e renderle più leggibili
 PUBLISHER_MAP = {
     # BBC
     "feeds.bbci.co.uk": "BBC",
@@ -126,9 +127,9 @@ PUBLISHER_MAP = {
 
 def publisher_from_url(url: str) -> str:
     netloc = (urlparse(url).netloc or "").lower().replace("www.",
-                                                          "")  # prende il netloc dell'url oppure ritorna stringa vuota (or se la prima condizione è falsa)
+                                                          "")  # prende il networklocation dell'url oppure ritorna stringa vuota (or se la prima condizione è falsa cioè il netloc non c'è)
     return PUBLISHER_MAP.get(netloc,
-                             netloc or "unknown")  # fa il mapping oppure (se non trova nel dizionario) torna netloc or unknown se vuoi
+                             netloc or "unknown")  # fa il mapping oppure (se non trova nel dizionario) torna netloc or unknown se vuoto
 
 
 # 5 NORMALISATION + TOKENS dei titoli
@@ -142,15 +143,22 @@ def normalize_title_for_dedup(t: str) -> str:
     return t
 
 
+KEEP_SHORT = {"eu", "ue", "us", "uk", "un", "g7", "g8"}
+
+
 def title_tokens(title: str, stopwords_set: set[str]) -> set[
     str]:  # annotazione che mi dice che mi aspetto la funzione ritorni
-    words = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ0-9]+", (title or "").lower())  # trova tutte ke parole nel titolo
+    norm = normalize_title_for_dedup(title)
+    words = norm.split()
     out = set()
-    for w in words:
-        if len(w) < 3:
+    for w in words:  # filtriamo stringe più corte di tre, quelle nella lista di stopword e i numeri
+        if w.isdigit():
             continue
-        if w in stopwords_set:
+        if len(w) < 3 and w not in KEEP_SHORT:
             continue
+        if w in stopwords_set and w not in KEEP_SHORT:
+            continue
+
         out.add(w)
     return out
 
@@ -159,7 +167,7 @@ def title_tokens(title: str, stopwords_set: set[str]) -> set[
 # prende gli item dai feed e poi toglie i duplicati
 def fetch_items_for_country(country: str, feeds: list[str], target_day: date) -> list[Item]:
     items = []  # creo una lista che sarà riempita di items
-
+    x = 0
     for feed_url in feeds:
         pub = publisher_from_url(feed_url)  # chiamo la funzione di prima
         feed = feedparser.parse(feed_url)  # prendo il feed
@@ -274,7 +282,7 @@ def recompute_soft_centroid(token_counts: Counter, n_titles: int, min_frac: floa
 
 
 def cluster_items_into_stories(items: list[Item], stopwords_by_country: dict[str, set[str]], threshold: float = 0.25,
-                               centroid_min_frac: float = 0.6, ):
+                               centroid_min_frac: float = 0.6, soft_after: int = 3):
     items_sorted = sorted(items, key=lambda x: x.dt_utc,
                           reverse=True)  # ordiniamo gli item dal più nuovo (questa scelta può essere discussa perché favorisce storie più recenti)
 
@@ -289,9 +297,19 @@ def cluster_items_into_stories(items: list[Item], stopwords_by_country: dict[str
         for i, st in enumerate(stories):  # torna indice e dizionario
             if st["country"] != it.country:
                 continue
+
             score = jaccard(toks, st["centroid_tokens"])  # calcolo jaccard
+            shared_n = len(toks & st["centroid_tokens"])
+            toks_strong = {t for t in toks if
+                           len(t) >= 5}  # assumiamo che parole di 5 o più lettere portino più significato
+            cent_strong = {t for t in st["centroid_tokens"] if len(t) >= 5}  # centroide di parole più lunghe di 5
+            shared_strong_n = len(toks_strong & cent_strong)  # intersezione
+            fallback = (shared_n >= 3 and shared_strong_n >= 2)
+            if fallback:
+                score = max(score, threshold)
+
             if score > best_score:
-                best_score = score  # cerca la storia con massimo score di somiglianza rispetto a quella inserita
+                best_score = score
                 best_idx = i
 
         if best_idx is not None and best_score >= threshold:  # se il best score è più alto del threshold, aggiungo al cluster
@@ -303,9 +321,11 @@ def cluster_items_into_stories(items: list[Item], stopwords_by_country: dict[str
             # st["centroid_tokens"] = st["centroid_tokens"] | toks  # unione centroid (il centroide cresce) problema?? può attrarre titoli non attinenti o abbassare troppo lo score
 
             # aggiorniamo centroide in modo "soft": token che compaiono in almeno X% dei titoli del cluster
-            st["n_titles"] += 1
-            st["token_counts"].update(toks)
-            st["centroid_tokens"] = recompute_soft_centroid(st["token_counts"], st["n_titles"], centroid_min_frac)
+            if st["n_titles"] < soft_after:
+                st["centroid_tokens"] = set(st["token_counts"].keys())  # union-ish
+            else:
+                st["centroid_tokens"] = recompute_soft_centroid(
+                    st["token_counts"], st["n_titles"], centroid_min_frac)
 
             # aggiorna titolo rappresentativo (B): titolo con Jaccard più alta rispetto al centroide soft
             st_stopset = stopwords_by_country.get(st["country"], STOP_IT | STOP_EN | COMMON_STOPWORDS)
@@ -773,7 +793,7 @@ if __name__ == "__main__":  # Questo è il modo standard in Python per dire: se 
     stories = cluster_items_into_stories(
         items=all_items,
         stopwords_by_country=STOPWORDS_BY_COUNTRY,
-        threshold=0.25,
+        threshold=0.20,
         centroid_min_frac=0.5,
     )
 

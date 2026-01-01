@@ -486,7 +486,7 @@ def chunk_overlaps_entity(chunk, doc, allowed_ent_labels: set[str]) -> bool:
             return True
     return False
 
-
+KEEP_SHORT = {"eu", "ue", "us", "uk", "un", "g7", "g8"}
 def extract_phrase_pairs_from_doc(
     doc,
     stopwords_set,
@@ -536,7 +536,7 @@ def extract_phrase_pairs_from_doc(
             continue
 
         key = _phrase_key_from_surface(disp)
-        KEEP_SHORT = {"eu", "ue", "us", "uk", "un", "g7", "g8"}
+
         if len(key) < 3 and key not in KEEP_SHORT:
             continue
         if _is_stopword_phrase(key, stopwords_set):
