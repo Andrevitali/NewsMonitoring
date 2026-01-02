@@ -448,7 +448,7 @@ select, input {{
 }}
 .dashlink{{
   display:block;
-  margin-top: 110px;
+  margin-top: 115px;
   padding: 10px 11px;
   border-radius: 12px;
   background: var(--card);
@@ -526,7 +526,7 @@ code {{ color: var(--accent); }}
         Updated: {generated_str}<br/>
       </div>
       <a class="dashlink" href="https://andrevitali.github.io/NewsMonitoring/" target="_blank" rel="noopener">
-      <div class="sub">Click here for the main dashboard</div>
+      <div class="sub">Click here to return to the main dashboard</div>
       <div class="dashlink-title">News Dashboard</div>
       </a>
     </aside>
