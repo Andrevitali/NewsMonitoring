@@ -909,8 +909,9 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             return f"<p class='empty-msg'>{msg}</p>"
         return df.to_html(index=False, classes=["data-table"])
 
-    day_buttons_html = "".join(
-        f'<button class="country-btn day-btn" data-day="{d.isoformat()}">{d.strftime("%d %b %Y")}</button>'
+    # --- CHANGED: day selection is now a dropdown ---
+    day_options_html = "".join(
+        f'<option value="{d.isoformat()}">{d.strftime("%d %b %Y")}</option>'
         for d in days
     )
 
@@ -1014,17 +1015,17 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             color: var(--text-main);
             display: flex;
             gap: 24px;
+            height: 100vh;
+            overflow: hidden;
         }}
         .sidebar {{
-            width: 240px;
+            width: 100%;
             padding: 20px 18px;
             background: radial-gradient(circle at top, #1a202c 0, #05070a 55%);
             border-radius: 16px;
             border: 1px solid var(--border-subtle);
             box-shadow: var(--shadow-soft);
-            position: sticky;
-            top: 24px;
-            height: fit-content;
+            
         }}
         .sidebar h2 {{
             color: #edf2f7;
@@ -1058,6 +1059,23 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             background: var(--accent-soft);
             border-color: var(--accent);
         }}
+
+        
+        .select {{
+            width: 100%;
+            background: transparent;
+            color: var(--text-main);
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            padding: 10px 10px;
+            font-size: 0.95rem;
+            outline: none;
+        }}
+        .select option {{
+            background: #05070a;
+            color: var(--text-main);
+        }}
+
         .container {{
             flex: 1;
             max-width: 1100px;
@@ -1066,6 +1084,8 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             border-radius: 18px;
             border: 1px solid var(--border-subtle);
             box-shadow: var(--shadow-soft);
+            height: calc(100vh - 64px);
+    overflow-y: auto;
         }}
         h1 {{ margin: 0 0 6px; font-size: 1.4rem; }}
         .subtitle {{ margin: 0 0 4px; font-size: 0.9rem; color: var(--text-muted); }}
@@ -1087,6 +1107,19 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
         }}
         @media (max-width: 960px) {{
             body {{ flex-direction: column; }}
+            .leftcol{{
+  width: 100%;
+  position: static;
+  min-height: auto;
+}}
+.container{{
+  height: auto;
+  overflow-y: visible;
+}}
+.dashlink{{
+  margin-top: 12px;
+}}
+
             .sidebar {{
                 position: static;
                 width: 100%;
@@ -1143,28 +1176,84 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
             font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
             text-align: right;
         }}
+        
+.dashlink{{
+  display:block;
+  margin-top: 105px;
+  width:100%;
+  padding: 10px 11px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  text-decoration: none;
+  font-weight: 600;
+}}
+
+.dashlink-title{{
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.15;
+}}
+
+.dashlink:hover{{
+  border-color: var(--accent);
+  color: var(--accent);
+}}
+
+.dashlink .sub{{
+  margin: 0 0 4px 0;
+  font-size: .8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}}
+.leftcol{{
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  position: static;
+  min-height: 0;
+
+  min-height: calc(100vh - 48px);
+}}
+
+
+
+
     </style>
 </head>
 <body>
+  <div class="leftcol">
     <div class="sidebar">
-  <h2>Select a Country:</h2>
-  {country_buttons_html}
+      <h2>Select a Country:</h2>
+      {country_buttons_html}
 
-  <h2 style="margin-top:16px;">Select a Date:</h2>
-  <p>(up to last 14 days)</p>
-  {day_buttons_html}
-</div>
+      <h2 style="margin-top:16px;">Select a Date:</h2>
+      <p>(up to last 14 days)</p>
+
+      <select id="daySelect" class="select">
+        {day_options_html}
+      </select>
+    </div>
+
+    <a class="dashlink" href="https://andrevitali.github.io/NewsMonitoring/story_dashboard.html" target="_blank" rel="noopener">
+      <div class="sub">Click here to read today's stories</div>
+      <div class="dashlink-title">Story Dashboard</div>
+    </a>
+    </div>
+
     <div class="container">
         <h1>European News Dashboard</h1>
         <p class="subtitle">Daily view</p>
         <p class="updated-info">Last update: {generated_str}</p>
         {''.join(panels_html)}
     </div>
-
     <script>
         const panels = document.querySelectorAll('.panel');
-        const dayButtons = document.querySelectorAll('.day-btn');
         const countryButtons = document.querySelectorAll('.country-only-btn');
+        const daySelect = document.getElementById('daySelect');
 
         let selectedDay = null;
         let selectedCountry = null;
@@ -1175,38 +1264,35 @@ def save_week_dashboard_html(last_day: date, countries: list[str], days_back: in
                 p.style.display = ok ? 'block' : 'none';
             }});
 
-            dayButtons.forEach(b => {{
-                b.classList.toggle('active', b.getAttribute('data-day') === day);
-            }});
-
             countryButtons.forEach(b => {{
                 b.classList.toggle('active', b.getAttribute('data-country') === country);
             }});
         }}
 
-        dayButtons.forEach(btn => {{
+        countryButtons.forEach(btn => {{
             btn.addEventListener('click', () => {{
-                selectedDay = btn.getAttribute('data-day');
+                selectedCountry = btn.getAttribute('data-country');
+                if (selectedDay === null && daySelect) {{
+                    selectedDay = daySelect.value;
+                }}
+                showPanel(selectedDay, selectedCountry);
+            }});
+        }});
+
+        if (daySelect) {{
+            daySelect.addEventListener('change', () => {{
+                selectedDay = daySelect.value;
                 if (selectedCountry === null && countryButtons.length > 0) {{
                     selectedCountry = countryButtons[0].getAttribute('data-country');
                 }}
                 showPanel(selectedDay, selectedCountry);
             }});
-        }});
-
-        countryButtons.forEach(btn => {{
-            btn.addEventListener('click', () => {{
-                selectedCountry = btn.getAttribute('data-country');
-                if (selectedDay === null && dayButtons.length > 0) {{
-                    selectedDay = dayButtons[0].getAttribute('data-day');
-                }}
-                showPanel(selectedDay, selectedCountry);
-            }});
-        }});
+        }}
 
         window.addEventListener('DOMContentLoaded', () => {{
-            if (dayButtons.length > 0) {{
-                selectedDay = dayButtons[0].getAttribute('data-day'); // newest
+            if (daySelect && daySelect.options.length > 0) {{
+                selectedDay = daySelect.options[0].value; // newest
+                daySelect.value = selectedDay;
             }}
             if (countryButtons.length > 0) {{
                 selectedCountry = countryButtons[0].getAttribute('data-country');
