@@ -694,8 +694,8 @@ def save_story_content_html(out_path: Path, day: date, stories: list[dict]):
             <div class="story-head">
                 <div class="story-title">{esc(st['rep_title'])}</div>
                 <div class="story-badges">
-                    <span class="badge">coverage: {st['coverage']}</span>
-                    <span class="badge">items: {st['n_items']}</span>
+                    <span class="badge">news outlets: {st['coverage']}</span>
+                    <span class="badge">articles: {st['n_items']}</span>
                     <span class="badge muted">{esc(st['country'])}</span>
                 </div>
             </div>
