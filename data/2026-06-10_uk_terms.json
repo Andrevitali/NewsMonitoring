@@ -1,0 +1,20 @@
+{
+  "cost": 1,
+  "rise": 1,
+  "fire": 2,
+  "protester": 2,
+  "vehicle": 2,
+  "bin": 2,
+  "unrest": 2,
+  "protest": 2,
+  "violence": 2,
+  "news": 1,
+  "sanction": 1,
+  "settler": 1,
+  "release": 1,
+  "call": 1,
+  "injury": 1,
+  "anti immigration protesters": 2,
+  "belfast": 5,
+  "knife attack": 4
+}
