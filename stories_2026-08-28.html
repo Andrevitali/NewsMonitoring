@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Stories — 2026-08-28</title>
+<style>
+:root {
+  --bg:#05070a;
+  --panel:#101521;
+  --card:#141b2a;
+  --text:#f5f5f5;
+  --muted:#a0aec0;
+  --border:#263145;
+  --accent:#4fd1c5;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 22px 22px;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  background: var(--bg); color: var(--text);
+}
+.meta { color: var(--muted); font-size: 0.85rem; }
+.story-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 14px;
+  margin-bottom: 12px;
+}
+.story-head {
+  display: flex; gap: 14px; justify-content: space-between; align-items: flex-start;
+}
+.story-title {
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.story-badges {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+}
+.badge {
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+.badge.muted { color: var(--muted); }
+.story-sub { margin-top: 8px; }
+.story-details { margin-top: 10px; }
+.story-details summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.92rem;
+}
+ul.items { margin: 10px 0 0 0; padding-left: 18px; }
+ul.items li { margin-bottom: 6px; line-height: 1.25; }
+a { color: var(--text); }
+a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="stories">
+
+        <div class="story-card" data-country="uk" data-search="Australia news live: Greens say Labor immigration policy has ‘no principle’; gambling company calls PM’s ad reforms a ‘missed opportunity’">
+            <div class="story-head">
+                <div class="story-title">Australia news live: Greens say Labor immigration policy has ‘no principle’; gambling company calls PM’s ad reforms a ‘missed opportunity’</div>
+                <div class="story-badges">
+                    <span class="badge">news outlets: 1</span>
+                    <span class="badge">articles: 1</span>
+                    <span class="badge muted">uk</span>
+                </div>
+            </div>
+            <div class="story-sub">
+                <span class="meta">News sources: The Guardian</span><br/>
+                <span class='meta'>Time window: 00:55 → 00:55 (UTC)</span>
+            </div>
+
+            <details class="story-details">
+                <summary>Show news</summary>
+                <ul class="items">
+                    <li><span class='meta'>[The Guardian] 2026-08-28T00:55:09Z</span> — <a href='https://www.theguardian.com/australia-news/live/2026/aug/28/nepal-floods-australians-missing-penny-wong-anthony-albanese-angus-taylor-liberal-party-pauline-hanson-one-nation-ntwnfb' target='_blank' rel='noopener'>Australia news live: Greens say Labor immigration policy has ‘no principle’; gambling company calls PM’s ad reforms a ‘missed opportunity’</a></li>
+                </ul>
+            </details>
+        </div>
+        
+        <div class="story-card" data-country="uk" data-search="Nepal flash flood: death toll nears 400 amid warning of fresh danger from rising lake water – latest updates">
+            <div class="story-head">
+                <div class="story-title">Nepal flash flood: death toll nears 400 amid warning of fresh danger from rising lake water – latest updates</div>
+                <div class="story-badges">
+                    <span class="badge">news outlets: 1</span>
+                    <span class="badge">articles: 1</span>
+                    <span class="badge muted">uk</span>
+                </div>
+            </div>
+            <div class="story-sub">
+                <span class="meta">News sources: The Guardian</span><br/>
+                <span class='meta'>Time window: 00:44 → 00:44 (UTC)</span>
+            </div>
+
+            <details class="story-details">
+                <summary>Show news</summary>
+                <ul class="items">
+                    <li><span class='meta'>[The Guardian] 2026-08-28T00:44:45Z</span> — <a href='https://www.theguardian.com/world/live/2026/aug/27/nepal-flash-flood-live-updates-tibet-border-death-toll-missing-himalayas-floods-flooding-latest-news' target='_blank' rel='noopener'>Nepal flash flood: death toll nears 400 amid warning of fresh danger from rising lake water – latest updates</a></li>
+                </ul>
+            </details>
+        </div>
+        
+        <div class="story-card" data-country="uk" data-search="Canadian prime minister and New York lawmaker denounce Trump’s move to rename Lake Ontario as Lake America – live">
+            <div class="story-head">
+                <div class="story-title">Canadian prime minister and New York lawmaker denounce Trump’s move to rename Lake Ontario as Lake America – live</div>
+                <div class="story-badges">
+                    <span class="badge">news outlets: 1</span>
+                    <span class="badge">articles: 1</span>
+                    <span class="badge muted">uk</span>
+                </div>
+            </div>
+            <div class="story-sub">
+                <span class="meta">News sources: The Guardian</span><br/>
+                <span class='meta'>Time window: 00:32 → 00:32 (UTC)</span>
+            </div>
+
+            <details class="story-details">
+                <summary>Show news</summary>
+                <ul class="items">
+                    <li><span class='meta'>[The Guardian] 2026-08-28T00:32:06Z</span> — <a href='https://www.theguardian.com/us-news/live/2026/aug/27/cia-moscow-nato-ratcliffe-rutte-colby-trump-paxton-voting-latest-news-updates' target='_blank' rel='noopener'>Canadian prime minister and New York lawmaker denounce Trump’s move to rename Lake Ontario as Lake America – live</a></li>
+                </ul>
+            </details>
+        </div>
+        
+</div>
+
+<script>
+// filtri arrivano dal wrapper via querystring: ?country=...&q=...
+const params = new URLSearchParams(window.location.search);
+const country = params.get('country') || 'all';
+const q = (params.get('q') || '').toLowerCase().trim();
+
+const cards = Array.from(document.querySelectorAll('.story-card'));
+
+cards.forEach(card => {
+  const okCountry = (country === 'all') || (card.getAttribute('data-country') === country);
+  const hay = (card.getAttribute('data-search') || '').toLowerCase();
+  const okSearch = !q || hay.includes(q);
+  card.style.display = (okCountry && okSearch) ? 'block' : 'none';
+});
+</script>
+</body>
+</html>
